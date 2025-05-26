@@ -1,0 +1,1555 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0">
+    <title>Remoção</title>
+    <link rel="icon" type="image/png" href="P.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        html {
+            font-size: 16px; /* Base font size for rem units */
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 1rem;
+            background-color: #f0f0f0;
+            width: 100%;
+            overflow-x: hidden;
+            font-size: 1rem;
+        }
+        .header {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding: 0.625rem;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 0.625rem;
+            width: 100%;
+            gap: 1.25rem;
+        }
+        .counter-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap;
+            gap: 0.625rem;
+        }
+        .counter-container h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            display: inline-flex;
+            align-items: center;
+        }
+        .rocket {
+            width: 2.5rem;
+            height: 2.5rem;
+            transition: transform 0.5s ease;
+            vertical-align: middle;
+        }
+        .launch {
+            transform: translateY(-6.25rem) rotate(45deg);
+        }
+        #counter {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 0.625rem;
+        }
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.625rem;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 0.3125rem 0.625rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: none;
+            color: white;
+            border-radius: 0.3125rem;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .copy-button {
+            background-color: #4da8ff;
+        }
+        .delete-button {
+            background-color: #dc3545;
+        }
+        .save-button {
+            background-color: #28a745;
+        }
+        .tab-container {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 1.25rem;
+            width: 100%;
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 0.625rem 1.25rem;
+            cursor: pointer;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            border-top-left-radius: 0.625rem;
+            border-top-right-radius: 0.625rem;
+            margin-right: 0.3125rem;
+            margin-bottom: 0.3125rem;
+            transition: background-color 0.3s, color 0.3s;
+            flex: 1 0 auto;
+            text-align: center;
+            min-width: 6rem;
+        }
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            border-bottom: 1px solid #ffffff;
+        }
+        .tab-content {
+            display: none;
+            padding: 1rem;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 0.625rem;
+            width: 100%;
+            overflow-x: auto;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .content {
+            border: 1px solid #ddd;
+            padding: 0.625rem;
+            margin-bottom: 0.625rem;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
+            width: 100%;
+        }
+        textarea {
+            width: 100%;
+            max-width: 100%;
+            height: 3.125rem;
+            padding: 0.3125rem;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            resize: none;
+        }
+        .form-group {
+            margin-bottom: 0.9375rem;
+            width: 100%;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.3125rem;
+            font-weight: bold;
+        }
+        .form-group input[type="text"],
+        .form-group select {
+            width: 100%;
+            max-width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 0.3125rem;
+            font-size: 1rem;
+        }
+        .portas-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+        }
+        .porta-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.625rem;
+            flex-wrap: wrap;
+            gap: 0.625rem;
+        }
+        .porta-row label {
+            width: 2.5rem;
+            font-weight: bold;
+        }
+        .porta-row input[type="text"],
+        .porta-row select {
+            width: 100%;
+            max-width: 12rem;
+            min-width: 6rem;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 0.3125rem;
+            font-size: 1rem;
+        }
+        .dados-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.25rem;
+            overflow-x: auto;
+        }
+        .dados-table th, .dados-table td {
+            border: 1px solid #ddd;
+            padding: 0.5rem;
+            text-align: left;
+        }
+        .dados-table th {
+            background-color: #007bff;
+            color: white;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 0.625rem;
+            margin-bottom: 1.25rem;
+        }
+        .custom-popup, .error-popup, .delete-success-popup, .no-data-popup, .no-data-to-copy-popup, .empty-protocol-popup, .report-success-popup, .clipboard-error-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 0.9375rem 1.875rem;
+            border-radius: 0.625rem;
+            color: white;
+            z-index: 1000;
+            animation: fadeIn 0.5s, fadeOut 0.5s 2s forwards;
+        }
+        .custom-popup {
+            background-color: #4CAF50;
+        }
+        .error-popup, .delete-success-popup, .no-data-popup, .no-data-to-copy-popup, .empty-protocol-popup, .clipboard-error-popup {
+            background-color: #dc3545;
+        }
+        .report-success-popup {
+            background-color: #4CAF50;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        #confirmPopup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 1.25rem;
+            border-radius: 0.625rem;
+            box-shadow: 0 0 0.625rem rgba(0,0,0,0.5);
+            z-index: 1001;
+            text-align: center;
+            min-width: 15rem;
+        }
+        #confirmOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        #confirmPopup button {
+            margin: 0.625rem;
+        }
+        #copyFallbackContainer {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 1.25rem;
+            border-radius: 0.625rem;
+            box-shadow: 0 0 0.625rem rgba(0,0,0,0.5);
+            z-index: 1001;
+            width: 80%;
+            max-width: 37.5rem;
+        }
+        #copyFallbackContainer textarea {
+            width: 100%;
+            height: 6.25rem;
+            margin-bottom: 0.625rem;
+        }
+        @media (max-width: 48rem) {
+            .header {
+                flex-direction: column;
+                align-items: center;
+                padding: 0.9375rem;
+            }
+            .counter-container h1 {
+                font-size: 1.25rem;
+            }
+            #counter {
+                font-size: 1.5rem;
+            }
+            .rocket {
+                width: 1.875rem;
+                height: 1.875rem;
+            }
+            .button-container {
+                justify-content: center;
+                margin-top: 0.625rem;
+            }
+            .tab {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+                min-width: 5rem;
+            }
+            .porta-row input[type="text"],
+            .porta-row select {
+                max-width: 100%;
+                min-width: 0;
+            }
+            .form-group input[type="text"],
+            .form-group select {
+                font-size: 0.9rem;
+            }
+            .dados-table th, .dados-table td {
+                font-size: 0.8rem;
+                padding: 0.4rem;
+            }
+        }
+        @media (min-width: 75rem) {
+            html {
+                font-size: 18px; /* Slightly larger base font for large screens */
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- Cabeçalho -->
+    <div class="header">
+        <div class="counter-container">
+            <h1>Atendimentos: <span id="counter">0</span></h1>
+            <img id="rocket" class="rocket" src="https://img.icons8.com/ios/50/ffffff/rocket.png" alt="Foguete">
+        </div>
+        <div class="button-container">
+            <button class="save-button" onclick="increaseCounter()">Atendimento</button>
+            <button class="delete-button" onclick="resetCounter()">Zerar Contador</button>
+        </div>
+    </div>
+
+    <!-- Container de Abas -->
+    <div class="tab-container">
+    <div class="tab active" onclick="openTab('tab1', this)">Script Conversa</div>
+    <div class="tab" onclick="openTab('tab2', this)">R1</div>
+    <div class="tab" onclick="openTab('tab8', this)">R2</div>
+    <div class="tab" onclick="openTab('tab10', this)">R3</div>
+    <div class="tab" onclick="openTab('tab11', this)">R4</div>
+    <div class="tab" onclick="openTab('tab12', this)">R5</div>
+    <div class="tab" onclick="openTab('tab9', this)">Dados Remoção de Portas</div>
+    <div class="tab" onclick="openTab('tab13', this)">Dashboard</div>
+    <div class="tab" onclick="openTab('tab14', this)">Atendimentos Mensais</div>
+</div>
+
+    <!-- Tab Script Conversa -->
+    <div id="tab1" class="tab-content active">
+        <div class="content">
+            <label>Saudação simples</label>
+            <textarea id="text1">Olá, tudo bem? Meu nome é Denison e serei responsável pelo seu atendimento.</textarea>
+            <button class="copy-button" onclick="copyToClipboard('text1')">Copiar</button>
+        </div>
+        <div class="content">
+            <label>Despedida simples</label>
+            <textarea id="text2">Obrigada por entrar em contato, qualquer coisa é só chamar! Tenha um bom dia!</textarea>
+            <button class="copy-button" onclick="copyToClipboard('text2')">Copiar</button>
+        </div>
+        <div class="content">
+            <label>Texto personalizado</label>
+            <textarea id="text3"></textarea>
+            <button class="copy-button" onclick="copyToClipboard('text3')">Copiar</button>
+        </div>
+    </div>
+
+    <!-- Tab R1 -->
+    <div id="tab2" class="tab-content">
+        <h2>Remoção de Portas 1</h2>
+        <form id="remo">
+            <div class="form-group">
+                <label for="protocolo">Protocolo:</label>
+                <input type="text" id="protocolo">
+            </div>
+            <div class="form-group">
+                <label for="tecnico">Técnico:</label>
+                <select id="tecnico">
+                    <option value="" disabled selected>Selecione um técnico</option>
+                    <option value="Anderson Assis">Anderson Assis</option>
+                    <option value="Gilmar Brito">Gilmar Brito</option>
+                    <option value="Lucínio Teixeira">Lucínio Teixeira</option>
+                    <option value="Paulo Cesar">Paulo Cesar</option>
+                    <option value="Vinícius Kober">Vinícius Kober</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="codigo">Código:</label>
+                <input type="text" id="codigo">
+            </div>
+            <div class="form-group">
+                <label for="cliente">Cliente:</label>
+                <input type="text" id="cliente">
+            </div>
+            <div class="form-group">
+                <label for="CTO">CTO:</label>
+                <input type="text" id="CTO">
+            </div>
+            <div class="form-group">
+                <label for="portaremovida">Porta Removida:</label>
+                <input type="text" id="portaremovida">
+            </div>
+            <div class="form-group">
+                <label for="observacao">Observação:</label>
+                <select id="observacao">
+                    <option value="" selected>Selecione uma observação</option>
+                    <option value="Identificado código do cliente na CTO, não foi efetuada a remoção devido o mesmo estar com status sem alimentação, Efetuada a padronização da CTO">Sem Alimentação</option>
+                    <option value="Identificado código do cliente na CTO, Efetuada a remoção devido o status estar DESCONECTADO.">Desconectado</option>
+                    <option value="Não identificado o código do cliente , porem foi efetuada a padronização da CTO.">Não Identificado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Portas:</label>
+                <table class="portas-table">
+                    <tbody>
+                        <tr><td><div class="porta-row"><label>P1:</label><input type="text" id="porta1-codigo"><select id="porta1-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P2:</label><input type="text" id="porta2-codigo"><select id="porta2-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P3:</label><input type="text" id="porta3-codigo"><select id="porta3-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P4:</label><input type="text" id="porta4-codigo"><select id="porta4-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P5:</label><input type="text" id="porta5-codigo"><select id="porta5-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P6:</label><input type="text" id="porta6-codigo"><select id="porta6-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P7:</label><input type="text" id="porta7-codigo"><select id="porta7-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P8:</label><input type="text" id="porta8-codigo"><select id="porta8-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P9:</label><input type="text" id="porta9-codigo"><select id="porta9-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P10:</label><input type="text" id="porta10-codigo"><select id="porta10-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P11:</label><input type="text" id="porta11-codigo"><select id="porta11-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P12:</label><input type="text" id="porta12-codigo"><select id="porta12-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P13:</label><input type="text" id="porta13-codigo"><select id="porta13-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P14:</label><input type="text" id="porta14-codigo"><select id="porta14-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P15:</label><input type="text" id="porta15-codigo"><select id="porta15-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P16:</label><input type="text" id="porta16-codigo"><select id="porta16-status"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="button-container">
+                <button type="button" class="copy-button" onclick="copiarDados('remo')">Copiar Dados</button>
+                <button type="button" class="delete-button" onclick="showConfirmPopup('formClear', 'remo')">Apagar Dados</button>
+                <button type="button" class="save-button" onclick="salvarDados('remo')">Salvar Dados</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tab R2 -->
+    <div id="tab8" class="tab-content">
+        <h2>Remoção de Portas 2</h2>
+        <form id="remo2">
+            <div class="form-group">
+                <label for="protocolo2">Protocolo:</label>
+                <input type="text" id="protocolo2">
+            </div>
+            <div class="form-group">
+                <label for="tecnico2">Técnico:</label>
+                <select id="tecnico2">
+                    <option value="" disabled selected>Selecione um técnico</option>
+                    <option value="Anderson Assis">Anderson Assis</option>
+                    <option value="Gilmar Brito">Gilmar Brito</option>
+                    <option value="Lucínio Teixeira">Lucínio Teixeira</option>
+                    <option value="Paulo Cesar">Paulo Cesar</option>
+                    <option value="Vinícius Kober">Vinícius Kober</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="codigo2">Código:</label>
+                <input type="text" id="codigo2">
+            </div>
+            <div class="form-group">
+                <label for="cliente2">Cliente:</label>
+                <input type="text" id="cliente2">
+            </div>
+            <div class="form-group">
+                <label for="CTO2">CTO:</label>
+                <input type="text" id="CTO2">
+            </div>
+            <div class="form-group">
+                <label for="portaremovida2">Porta Removida:</label>
+                <input type="text" id="portaremovida2">
+            </div>
+            <div class="form-group">
+                <label for="observacao2">Observação:</label>
+                <select id="observacao2">
+                    <option value="" selected>Selecione uma observação</option>
+                    <option value="Identificado código do cliente na CTO, não foi efetuada a remoção devido o mesmo estar com status sem alimentação, Efetuada a padronização da CTO">Sem Alimentação</option>
+                    <option value="Identificado código do cliente na CTO, Efetuada a remoção devido o status estar DESCONECTADO.">Desconectado</option>
+                    <option value="Não identificado o código do cliente , porem foi efetuada a padronização da CTO.">Não Identificado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Portas:</label>
+                <table class="portas-table">
+                    <tbody>
+                        <tr><td><div class="porta-row"><label>P1:</label><input type="text" id="porta1-codigo2"><select id="porta1-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P2:</label><input type="text" id="porta2-codigo2"><select id="porta2-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P3:</label><input type="text" id="porta3-codigo2"><select id="porta3-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P4:</label><input type="text" id="porta4-codigo2"><select id="porta4-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P5:</label><input type="text" id="porta5-codigo2"><select id="porta5-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P6:</label><input type="text" id="porta6-codigo2"><select id="porta6-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P7:</label><input type="text" id="porta7-codigo2"><select id="porta7-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P8:</label><input type="text" id="porta8-codigo2"><select id="porta8-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P9:</label><input type="text" id="porta9-codigo2"><select id="porta9-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P10:</label><input type="text" id="porta10-codigo2"><select id="porta10-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P11:</label><input type="text" id="porta11-codigo2"><select id="porta11-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P12:</label><input type="text" id="porta12-codigo2"><select id="porta12-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P13:</label><input type="text" id="porta13-codigo2"><select id="porta13-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P14:</label><input type="text" id="porta14-codigo2"><select id="porta14-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P15:</label><input type="text" id="porta15-codigo2"><select id="porta15-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P16:</label><input type="text" id="porta16-codigo2"><select id="porta16-status2"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="button-container">
+                <button type="button" class="copy-button" onclick="copiarDados('remo2')">Copiar Dados</button>
+                <button type="button" class="delete-button" onclick="showConfirmPopup('formClear', 'remo2')">Apagar Dados</button>
+                <button type="button" class="save-button" onclick="salvarDados('remo2')">Salvar Dados</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tab R3 -->
+    <div id="tab10" class="tab-content">
+        <h2>Remoção de Portas 3</h2>
+        <form id="remo3">
+            <div class="form-group">
+                <label for="protocolo3">Protocolo:</label>
+                <input type="text" id="protocolo3">
+            </div>
+            <div class="form-group">
+                <label for="tecnico3">Técnico:</label>
+                <select id="tecnico3">
+                    <option value="" disabled selected>Selecione um técnico</option>
+                    <option value="Anderson Assis">Anderson Assis</option>
+                    <option value="Gilmar Brito">Gilmar Brito</option>
+                    <option value="Lucínio Teixeira">Lucínio Teixeira</option>
+                    <option value="Paulo Cesar">Paulo Cesar</option>
+                    <option value="Vinícius Kober">Vinícius Kober</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="codigo3">Código:</label>
+                <input type="text" id="codigo3">
+            </div>
+            <div class="form-group">
+                <label for="cliente3">Cliente:</label>
+                <input type="text" id="cliente3">
+            </div>
+            <div class="form-group">
+                <label for="CTO3">CTO:</label>
+                <input type="text" id="CTO3">
+            </div>
+            <div class="form-group">
+                <label for="portaremovida3">Porta Removida:</label>
+                <input type="text" id="portaremovida3">
+            </div>
+            <div class="form-group">
+                <label for="observacao3">Observação:</label>
+                <select id="observacao3">
+                    <option value="" selected>Selecione uma observação</option>
+                    <option value="Identificado código do cliente na CTO, não foi efetuada a remoção devido o mesmo estar com status sem alimentação, Efetuada a padronização da CTO">Sem Alimentação</option>
+                    <option value="Identificado código do cliente na CTO, Efetuada a remoção devido o status estar DESCONECTADO.">Desconectado</option>
+                    <option value="Não identificado o código do cliente , porem foi efetuada a padronização da CTO.">Não Identificado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Portas:</label>
+                <table class="portas-table">
+                    <tbody>
+                        <tr><td><div class="porta-row"><label>P1:</label><input type="text" id="porta1-codigo3"><select id="porta1-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P2:</label><input type="text" id="porta2-codigo3"><select id="porta2-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P3:</label><input type="text" id="porta3-codigo3"><select id="porta3-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P4:</label><input type="text" id="porta4-codigo3"><select id="porta4-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P5:</label><input type="text" id="porta5-codigo3"><select id="porta5-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P6:</label><input type="text" id="porta6-codigo3"><select id="porta6-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P7:</label><input type="text" id="porta7-codigo3"><select id="porta7-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P8:</label><input type="text" id="porta8-codigo3"><select id="porta8-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P9:</label><input type="text" id="porta9-codigo3"><select id="porta9-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P10:</label><input type="text" id="porta10-codigo3"><select id="porta10-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P11:</label><input type="text" id="porta11-codigo3"><select id="porta11-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P12:</label><input type="text" id="porta12-codigo3"><select id="porta12-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P13:</label><input type="text" id="porta13-codigo3"><select id="porta13-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P14:</label><input type="text" id="porta14-codigo3"><select id="porta14-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P15:</label><input type="text" id="porta15-codigo3"><select id="porta15-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P16:</label><input type="text" id="porta16-codigo3"><select id="porta16-status3"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="button-container">
+                <button type="button" class="copy-button" onclick="copiarDados('remo3')">Copiar Dados</button>
+                <button type="button" class="delete-button" onclick="showConfirmPopup('formClear', 'remo3')">Apagar Dados</button>
+                <button type="button" class="save-button" onclick="salvarDados('remo3')">Salvar Dados</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tab R4 -->
+<div id="tab11" class="tab-content">
+    <h2>Remoção de Portas 4</h2>
+    <form id="remo4">
+        <div class="form-group">
+            <label for="protocolo4">Protocolo:</label>
+            <input type="text" id="protocolo4">
+        </div>
+        <div class="form-group">
+            <label for="tecnico4">Técnico:</label>
+            <select id="tecnico4">
+                <option value="" disabled selected>Selecione um técnico</option>
+                <option value="Anderson Assis">Anderson Assis</option>
+                <option value="Gilmar Brito">Gilmar Brito</option>
+                <option value="Lucínio Teixeira">Lucínio Teixeira</option>
+                <option value="Paulo Cesar">Paulo Cesar</option>
+                <option value="Vinícius Kober">Vinícius Kober</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="codigo4">Código:</label>
+            <input type="text" id="codigo4">
+        </div>
+        <div class="form-group">
+            <label for="cliente4">Cliente:</label>
+            <input type="text" id="cliente4">
+        </div>
+        <div class="form-group">
+            <label for="CTO4">CTO:</label>
+            <input type="text" id="CTO4">
+        </div>
+        <div class="form-group">
+            <label for="portaremovida4">Porta Removida:</label>
+            <input type="text" id="portaremovida4">
+        </div>
+        <div class="form-group">
+            <label for="observacao4">Observação:</label>
+            <select id="observacao4">
+                <option value="" selected>Selecione uma observação</option>
+                <option value="Identificado código do cliente na CTO, não foi efetuada a remoção devido o mesmo estar com status sem alimentação, Efetuada a padronização da CTO">Sem Alimentação</option>
+                <option value="Identificado código do cliente na CTO, Efetuada a remoção devido o status estar DESCONECTADO.">Desconectado</option>
+                <option value="Não identificado o código do cliente , porem foi efetuada a padronização da CTO.">Não Identificado</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Portas:</label>
+            <table class="portas-table">
+                <tbody>
+                    <tr><td><div class="porta-row"><label>P1:</label><input type="text" id="porta1-codigo4"><select id="porta1-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P2:</label><input type="text" id="porta2-codigo4"><select id="porta2-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P3:</label><input type="text" id="porta3-codigo4"><select id="porta3-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P4:</label><input type="text" id="porta4-codigo4"><select id="porta4-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P5:</label><input type="text" id="porta5-codigo4"><select id="porta5-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P6:</label><input type="text" id="porta6-codigo4"><select id="porta6-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P7:</label><input type="text" id="porta7-codigo4"><select id="porta7-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P8:</label><input type="text" id="porta8-codigo4"><select id="porta8-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P9:</label><input type="text" id="porta9-codigo4"><select id="porta9-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P10:</label><input type="text" id="porta10-codigo4"><select id="porta10-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P11:</label><input type="text" id="porta11-codigo4"><select id="porta11-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P12:</label><input type="text" id="porta12-codigo4"><select id="porta12-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P13:</label><input type="text" id="porta13-codigo4"><select id="porta13-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P14:</label><input type="text" id="porta14-codigo4"><select id="porta14-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P15:</label><input type="text" id="porta15-codigo4"><select id="porta15-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P16:</label><input type="text" id="porta16-codigo4"><select id="porta16-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="button-container">
+            <button type="button" class="copy-button" onclick="copiarDados('remo4')">Copiar Dados</button>
+            <button type="button" class="delete-button" onclick="showConfirmPopup('formClear', 'remo4')">Apagar Dados</button>
+            <button type="button" class="save-button" onclick="salvarDados('remo4')">Salvar Dados</button>
+        </div>
+    </form>
+</div>
+
+<!-- Tab R5 -->
+<div id="tab12" class="tab-content">
+    <h2>Remoção de Portas 5</h2>
+    <form id="remo5">
+        <div class="form-group">
+            <label for="protocolo5">Protocolo:</label>
+            <input type="text" id="protocolo5">
+        </div>
+        <div class="form-group">
+            <label for="tecnico5">Técnico:</label>
+            <select id="tecnico5">
+                <option value="" disabled selected>Selecione um técnico</option>
+                <option value="Anderson Assis">Anderson Assis</option>
+                <option value="Gilmar Brito">Gilmar Brito</option>
+                <option value="Lucínio Teixeira">Lucínio Teixeira</option>
+                <option value="Paulo Cesar">Paulo Cesar</option>
+                <option value="Vinícius Kober">Vinícius Kober</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="codigo5">Código:</label>
+            <input type="text" id="codigo5">
+        </div>
+        <div class="form-group">
+            <label for="cliente5">Cliente:</label>
+            <input type="text" id="cliente5">
+        </div>
+        <div class="form-group">
+            <label for="CTO5">CTO:</label>
+            <input type="text" id="CTO5">
+        </div>
+        <div class="form-group">
+            <label for="portaremovida5">Porta Removida:</label>
+            <input type="text" id="portaremovida5">
+        </div>
+        <div class="form-group">
+            <label for="observacao5">Observação:</label>
+            <select id="observacao5">
+                <option value="" selected>Selecione uma observação</option>
+                <option value="Identificado código do cliente na CTO, não foi efetuada a remoção devido o mesmo estar com status sem alimentação, Efetuada a padronização da CTO">Sem Alimentação</option>
+                <option value="Identificado código do cliente na CTO, Efetuada a remoção devido o status estar DESCONECTADO.">Desconectado</option>
+                <option value="Não identificado o código do cliente , porem foi efetuada a padronização da CTO.">Não Identificado</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Portas:</label>
+            <table class="portas-table">
+                <tbody>
+                    <tr><td><div class="porta-row"><label>P1:</label><input type="text" id="porta1-codigo5"><select id="porta1-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P2:</label><input type="text" id="porta2-codigo5"><select id="porta2-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P3:</label><input type="text" id="porta3-codigo5"><select id="porta3-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P4:</label><input type="text" id="porta4-codigo5"><select id="porta4-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P5:</label><input type="text" id="porta5-codigo5"><select id="porta5-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P6:</label><input type="text" id="porta6-codigo5"><select id="porta6-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P7:</label><input type="text" id="porta7-codigo5"><select id="porta7-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P8:</label><input type="text" id="porta8-codigo5"><select id="porta8-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P9:</label><input type="text" id="porta9-codigo5"><select id="porta9-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P10:</label><input type="text" id="porta10-codigo5"><select id="porta10-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P11:</label><input type="text" id="porta11-codigo5"><select id="porta11-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P12:</label><input type="text" id="porta12-codigo5"><select id="porta12-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P13:</label><input type="text" id="porta13-codigo5"><select id="porta13-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P14:</label><input type="text" id="porta14-codigo5"><select id="porta14-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P15:</label><input type="text" id="porta15-codigo5"><select id="porta15-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    <tr><td><div class="porta-row"><label>P16:</label><input type="text" id="porta16-codigo5"><select id="porta16-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="button-container">
+            <button type="button" class="copy-button" onclick="copiarDados('remo5')">Copiar Dados</button>
+            <button type="button" class="delete-button" onclick="showConfirmPopup('formClear', 'remo5')">Apagar Dados</button>
+            <button type="button" class="save-button" onclick="salvarDados('remo5')">Salvar Dados</button>
+        </div>
+    </form>
+</div>
+
+    <!-- Tab Dados Remoção de Portas -->
+    <div id="tab9" class="tab-content">
+        <h2>Dados Remoção de Portas</h2>
+        <div class="totals-container">
+            <p>Total Geral: <span id="totalGeralRemocao">0</span></p>
+        </div>
+        <div class="action-buttons">
+            <button class="delete-button" onclick="showConfirmPopup('clearAll')">Limpar Todos os Dados</button>
+            <button class="save-button" onclick="gerarRelatorioPDFRemocao()">Gerar Relatório PDF</button>
+        </div>
+        <table class="dados-table" id="dadosTableRemocao">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Protocolo</th>
+                    <th>Técnico</th>
+                    <th>CTO</th>
+                    <th>Porta Removida</th>
+                    <th>Observação</th>
+                    <th>Portas</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Tab Dashboard -->
+<div id="tab13" class="tab-content">
+    <h2>Dashboard de Atendimentos</h2>
+    <div class="form-group">
+        <label for="filtroPeriodo">Filtrar por período:</label>
+        <select id="filtroPeriodo" onchange="atualizarDashboard()">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="all" selected>Todos</option>
+        </select>
+    </div>
+    <div class="totals-container">
+        <p>Total Geral de Atendimentos: <span id="totalAtendimentos">0</span></p>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 1.25rem; margin-bottom: 1.25rem;">
+        <div style="flex: 1; min-width: 300px;">
+            <h3>Atendimentos por Dia</h3>
+            <canvas id="graficoAtendimentosPorDia"></canvas>
+        </div>
+        <div style="flex: 1; min-width: 300px;">
+            <h3>Atendimentos por Técnico (Diário)</h3>
+            <canvas id="graficoAtendimentosPorTecnico"></canvas>
+        </div>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 1.25rem;">
+        <div style="flex: 1; min-width: 300px;">
+            <h3>Total por Técnico (Mensal)</h3>
+            <canvas id="graficoTotalPorTecnicoMensal"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Tab Atendimentos Mensais -->
+<div id="tab14" class="tab-content">
+    <h2>Atendimentos Mensais</h2>
+    <div class="action-buttons">
+        <button class="delete-button" onclick="showConfirmPopup('clearAllMensais')">Limpar Todos os Dados</button>
+    </div>
+    <table class="dados-table" id="atendimentosMensaisTable">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Técnico</th>
+                <th>Protocolo</th>
+                <th>Quantidade de Portas</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+    <!-- Popups -->
+    <div id="customPopup" class="custom-popup">Dados salvos com sucesso!</div>
+    <div id="errorPopup" class="error-popup">Protocolo já existe!</div>
+    <div id="emptyProtocolPopup" class="empty-protocol-popup">Por favor, preencha o protocolo!</div>
+    <div id="deleteSuccessPopup" class="delete-success-popup">Dados apagados com sucesso!</div>
+    <div id="noDataPopup" class="no-data-popup">Não há dados para apagar!</div>
+    <div id="noDataToCopyPopup" class="no-data-to-copy-popup">Não há itens para apagar!</div>
+    <div id="reportSuccessPopup" class="report-success-popup">Relatório gerado com sucesso!</div>
+    <div id="clipboardErrorPopup" class="clipboard-error-popup">Erro ao copiar. Por favor, copie manualmente.</div>
+    <div id="confirmPopup">
+        <p id="confirmMessage"></p>
+        <button class="save-button" onclick="confirmAction()">Sim</button>
+        <button class="delete-button" onclick="cancelAction()">Não</button>
+    </div>
+    <div id="confirmOverlay"></div>
+    <div id="copyFallbackContainer">
+        <p>Não foi possível copiar automaticamente. Copie o texto abaixo manualmente:</p>
+        <textarea id="copyFallbackText" readonly></textarea>
+        <button class="save-button" onclick="closeCopyFallback()">Fechar</button>
+    </div>
+
+    <script>
+        /**
+ * NOTA: Para evitar erros com a Clipboard API, execute esta aplicação em um servidor HTTPS ou localhost.
+ * A Clipboard API requer um contexto seguro para funcionar corretamente.
+ */
+
+// Função para carregar scripts jsPDF e jspdf-autotable assincronamente
+function loadScripts() {
+    return new Promise((resolve, reject) => {
+        const jsPDFScript = document.createElement('script');
+        jsPDFScript.src = 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
+        jsPDFScript.onload = () => {
+            const autoTableScript = document.createElement('script');
+            autoTableScript.src = 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js';
+            autoTableScript.onload = resolve;
+            autoTableScript.onerror = () => reject(new Error('Erro ao carregar jspdf-autotable'));
+            document.head.appendChild(autoTableScript);
+        };
+        jsPDFScript.onerror = () => reject(new Error('Erro ao carregar jsPDF'));
+        document.head.appendChild(jsPDFScript);
+    });
+}
+
+let jsPDFLoaded = false;
+loadScripts().then(() => {
+    jsPDFLoaded = true;
+    console.log('Scripts jsPDF e jspdf-autotable carregados com sucesso.');
+}).catch(error => {
+    console.error('Erro ao carregar scripts:', error);
+    jsPDFLoaded = false;
+});
+
+let counter = 0;
+let currentAction = null;
+let currentFormId = null;
+let currentProtocolo = null;
+
+// Função para sanitizar strings, removendo caracteres problemáticos
+function sanitizeString(str) {
+    return (str || '').replace(/[\r\n\t]+/g, ' ').trim();
+}
+
+// Função para exibir erro nos canvases
+function displayChartError() {
+    const canvases = [
+        document.getElementById('graficoAtendimentosPorDia'),
+        document.getElementById('graficoAtendimentosPorTecnico'),
+        document.getElementById('graficoTotalPorTecnicoMensal')
+    ];
+    canvases.forEach(canvas => {
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '16px Arial';
+            ctx.fillText('Erro ao carregar gráficos', 10, 50);
+        }
+    });
+}
+
+window.onload = function() {
+    const savedCounter = localStorage.getItem('counter');
+    if (savedCounter !== null) {
+        counter = parseInt(savedCounter);
+        document.getElementById('counter').textContent = counter;
+    }
+    atualizarTabelaRemocao();
+    atualizarTabelaMensais();
+    
+    // Atualizar Dashboard apenas se a aba estiver ativa e Chart.js carregado
+    if (document.getElementById('tab13').classList.contains('active')) {
+        if (window.Chart) {
+            atualizarDashboard();
+        } else {
+            console.error('Chart.js não carregado ao iniciar a página.');
+            displayChartError();
+        }
+    }
+};
+
+function increaseCounter() {
+    counter++;
+    document.getElementById('counter').textContent = counter;
+    localStorage.setItem('counter', counter);
+    launchRocket();
+}
+
+function decreaseCounter() {
+    if (counter > 0) counter--;
+    document.getElementById('counter').textContent = counter;
+    localStorage.setItem('counter', counter);
+}
+
+function resetCounter() {
+    showConfirmPopup('resetCounter');
+}
+
+function launchRocket() {
+    const rocket = document.getElementById('rocket');
+    rocket.classList.add('launch');
+    setTimeout(() => rocket.classList.remove('launch'), 500);
+}
+
+function openTab(tabId, element) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    element.classList.add('active');
+    
+    if (tabId === 'tab13') {
+        if (window.Chart) {
+            atualizarDashboard();
+        } else {
+            console.error('Chart.js não carregado. Gráficos não podem ser exibidos.');
+            displayChartError();
+        }
+    }
+}
+
+function copyToClipboard(id) {
+    const element = document.getElementById(id);
+    if (!element) {
+        console.error(`Elemento com ID ${id} não encontrado`);
+        return;
+    }
+    const text = sanitizeString(element.value);
+    if (text.trim() === '') {
+        const popup = document.getElementById('noDataToCopyPopup');
+        popup.textContent = 'Não há dados para copiar!';
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+        return;
+    }
+
+    // Verifica se a Clipboard API está disponível
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            const popup = document.getElementById('customPopup');
+            popup.textContent = 'Texto copiado com sucesso!';
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+        }).catch(err => {
+            console.error('Erro ao copiar com Clipboard API:', err);
+            showClipboardError(text);
+        });
+    } else {
+        // Fallback para ambientes não seguros ou navegadores sem suporte
+        console.warn('Clipboard API não disponível ou contexto não seguro');
+        showClipboardError(text);
+    }
+}
+
+function showClipboardError(text) {
+    // Tenta o fallback com document.execCommand
+    try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+            const popup = document.getElementById('customPopup');
+            popup.textContent = 'Texto copiado com sucesso!';
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+            return;
+        } else {
+            console.warn('Fallback com document.execCommand falhou');
+        }
+    } catch (err) {
+        console.error('Erro no fallback de cópia:', err);
+    }
+
+    // Se ambos os métodos falharem, exibe o texto em um campo visível
+    const popup = document.getElementById('clipboardErrorPopup');
+    popup.textContent = 'Erro ao copiar. Por favor, copie manualmente.';
+    popup.style.display = 'block';
+    setTimeout(() => popup.style.display = 'none', 2500);
+
+    const fallbackContainer = document.getElementById('copyFallbackContainer');
+    const fallbackText = document.getElementById('copyFallbackText');
+    fallbackText.value = text;
+    fallbackContainer.style.display = 'block';
+    document.getElementById('confirmOverlay').style.display = 'block';
+}
+
+function closeCopyFallback() {
+    const fallbackContainer = document.getElementById('copyFallbackContainer');
+    fallbackContainer.style.display = 'none';
+    document.getElementById('confirmOverlay').style.display = 'none';
+}
+
+function copiarDados(formId) {
+    const suffix = formId === 'remo' ? '' : formId === 'remo2' ? '2' : formId === 'remo3' ? '3' : formId === 'remo4' ? '4' : '5';
+    const protocolo = sanitizeString(document.getElementById(`protocolo${suffix}`).value);
+    const tecnico = sanitizeString(document.getElementById(`tecnico${suffix}`).value);
+    const codigo = sanitizeString(document.getElementById(`codigo${suffix}`).value);
+    const cliente = sanitizeString(document.getElementById(`cliente${suffix}`).value);
+    const CTO = sanitizeString(document.getElementById(`CTO${suffix}`).value);
+    const portaRemovida = sanitizeString(document.getElementById(`portaremovida${suffix}`).value);
+    const observacao = sanitizeString(document.getElementById(`observacao${suffix}`).value);
+    
+    let portasText = '';
+    for (let i = 1; i <= 16; i++) {
+        const codigoPorta = sanitizeString(document.getElementById(`porta${i}-codigo${suffix}`).value);
+        const statusPorta = sanitizeString(document.getElementById(`porta${i}-status${suffix}`).value);
+        if (codigoPorta || statusPorta) {
+            portasText += `P${i}: ${codigoPorta || ''} - ${statusPorta || ''}\n`;
+        }
+    }
+    
+    const header = "***** SEGUE A VALIDAÇÃO *****\nConferente: Denison Santos\n\n";
+    const text = `${header}Protocolo: ${protocolo || ''}\nTécnico: ${tecnico || ''}\nCódigo: ${codigo || ''}\nCliente: ${cliente || ''}\nCTO: ${CTO || ''}\nPorta Removida: ${portaRemovida || ''}\n\nObservação: ${observacao || ''}\n\nPortas:\n\n${portasText || ''}`;
+    
+    if (!text.trim()) {
+        const popup = document.getElementById('noDataToCopyPopup');
+        popup.textContent = 'Não há dados para copiar!';
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+        return;
+    }
+    
+    // Verifica se a Clipboard API está disponível
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            const popup = document.getElementById('customPopup');
+            popup.textContent = 'Dados copiados com sucesso!';
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+        }).catch(err => {
+            console.error('Erro ao copiar com Clipboard API:', err);
+            showClipboardError(text);
+        });
+    } else {
+        // Fallback para ambientes não seguros ou navegadores sem suporte
+        console.warn('Clipboard API não disponível ou contexto não seguro');
+        showClipboardError(text);
+    }
+}
+
+function showConfirmPopup(action, formId = null, protocolo = null) {
+    currentAction = action;
+    currentFormId = formId;
+    currentProtocolo = protocolo;
+    const message = action === 'formClear' ? 'Deseja apagar os dados do formulário?' : 
+                   action === 'clearAll' ? 'Deseja limpar todos os dados salvos?' : 
+                   action === 'resetCounter' ? 'Deseja zerar o contador?' :
+                   'Deseja excluir este registro?';
+    document.getElementById('confirmMessage').textContent = message;
+    document.getElementById('confirmPopup').style.display = 'block';
+    document.getElementById('confirmOverlay').style.display = 'block';
+}
+
+function confirmAction() {
+    if (currentAction === 'formClear') {
+        apagarDados(currentFormId);
+    } else if (currentAction === 'clearAll' || currentAction === 'clearAllMensais') {
+        limparLocalStorageRemocao();
+        atualizarTabelaMensais();
+        atualizarDashboard();
+    } else if (currentAction === 'resetCounter') {
+        counter = 0;
+        document.getElementById('counter').textContent = counter;
+        localStorage.setItem('counter', counter);
+    } else if (currentAction === 'deleteRecord' || currentAction === 'deleteRecordMensais') {
+        let dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+        dados = dados.filter(d => d.protocolo !== currentProtocolo);
+        localStorage.setItem('dadosRemocao', JSON.stringify(dados));
+        decreaseCounter();
+        atualizarTabelaRemocao();
+        atualizarTabelaMensais();
+        atualizarDashboard();
+        const popup = document.getElementById('deleteSuccessPopup');
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+    }
+    cancelAction();
+}
+
+function cancelAction() {
+    document.getElementById('confirmPopup').style.display = 'none';
+    document.getElementById('confirmOverlay').style.display = 'none';
+    currentAction = null;
+    currentFormId = null;
+    currentProtocolo = null;
+}
+
+function apagarDados(formId) {
+    const suffix = formId === 'remo' ? '' : formId === 'remo2' ? '2' : formId === 'remo3' ? '3' : formId === 'remo4' ? '4' : '5';
+    const protocolo = document.getElementById(`protocolo${suffix}`).value;
+
+    // Verifica se o protocolo está vazio
+    if (!protocolo) {
+        const popup = document.getElementById('noDataToCopyPopup');
+        popup.textContent = 'Não há itens para apagar!';
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+        return;
+    }
+
+    // Se o protocolo está preenchido, prossegue com a limpeza
+    document.getElementById(`protocolo${suffix}`).value = '';
+    document.getElementById(`tecnico${suffix}`).value = '';
+    document.getElementById(`codigo${suffix}`).value = '';
+    document.getElementById(`cliente${suffix}`).value = '';
+    document.getElementById(`CTO${suffix}`).value = '';
+    document.getElementById(`portaremovida${suffix}`).value = '';
+    document.getElementById(`observacao${suffix}`).value = '';
+    for (let i = 1; i <= 16; i++) {
+        document.getElementById(`porta${i}-codigo${suffix}`).value = '';
+        document.getElementById(`porta${i}-status${suffix}`).value = '';
+    }
+    const popup = document.getElementById('deleteSuccessPopup');
+    popup.style.display = 'block';
+    setTimeout(() => popup.style.display = 'none', 2500);
+}
+
+function salvarDados(formId) {
+    const suffix = formId === 'remo' ? '' : formId === 'remo2' ? '2' : formId === 'remo3' ? '3' : formId === 'remo4' ? '4' : '5';
+    const tipo = formId === 'remo' ? 'R1' : formId === 'remo2' ? 'R2' : 'R3';
+    const protocolo = sanitizeString(document.getElementById(`protocolo${suffix}`).value);
+    if (!protocolo) {
+        const popup = document.getElementById('emptyProtocolPopup');
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+        return;
+    }
+    let dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+    if (dados.some(d => d.protocolo === protocolo)) {
+        const popup = document.getElementById('errorPopup');
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+        return;
+    }
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    const tecnico = sanitizeString(document.getElementById(`tecnico${suffix}`).value);
+    const codigo = sanitizeString(document.getElementById(`codigo${suffix}`).value);
+    const cliente = sanitizeString(document.getElementById(`cliente${suffix}`).value);
+    const CTO = sanitizeString(document.getElementById(`CTO${suffix}`).value);
+    const portaRemovida = sanitizeString(document.getElementById(`portaremovida${suffix}`).value);
+    const observacao = sanitizeString(document.getElementById(`observacao${suffix}`).value);
+    const portas = [];
+    for (let i = 1; i <= 16; i++) {
+        const codigoPorta = sanitizeString(document.getElementById(`porta${i}-codigo${suffix}`).value);
+        const statusPorta = sanitizeString(document.getElementById(`porta${i}-status${suffix}`).value);
+        if (codigoPorta || statusPorta) {
+            portas.push({ porta: `P${i}`, codigo: codigoPorta, status: statusPorta });
+        }
+    }
+    const novoDado = { data: dataAtual, tipo, protocolo, tecnico, codigo, cliente, CTO, portaRemovida, observacao, portas };
+    dados.push(novoDado);
+    localStorage.setItem('dadosRemocao', JSON.stringify(dados));
+    increaseCounter();
+    atualizarTabelaRemocao();
+    const popup = document.getElementById('customPopup');
+    popup.textContent = 'Dados salvos com sucesso!';
+    popup.style.display = 'block';
+    setTimeout(() => popup.style.display = 'none', 2500);
+}
+
+function atualizarTabelaRemocao() {
+    const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+    const tbody = document.getElementById('dadosTableRemocao').querySelector('tbody');
+    tbody.innerHTML = '';
+    dados.forEach(dado => {
+        const portasText = dado.portas.map(p => `${p.porta}: ${sanitizeString(p.codigo) || 'N/A'} - ${sanitizeString(p.status) || 'Nenhum'}`).join('<br>');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${sanitizeString(dado.data)}</td>
+            <td>${sanitizeString(dado.tipo)}</td>
+            <td>${sanitizeString(dado.protocolo)}</td>
+            <td>${sanitizeString(dado.tecnico) || 'N/A'}</td>
+            <td>${sanitizeString(dado.CTO) || 'N/A'}</td>
+            <td>${sanitizeString(dado.portaRemovida) || 'N/A'}</td>
+            <td>${sanitizeString(dado.observacao) || 'N/A'}</td>
+            <td>${portasText || 'Nenhuma'}</td>
+            <td><button class="delete-button" onclick="showConfirmPopup('deleteRecord', null, '${sanitizeString(dado.protocolo)}')">Excluir</button></td>
+        `;
+        tbody.appendChild(row);
+    });
+    document.getElementById('totalGeralRemocao').textContent = dados.length;
+}
+
+function excluirRegistroRemocao(protocolo) {
+    showConfirmPopup('deleteRecord', null, protocolo);
+}
+
+function limparLocalStorageRemocao() {
+    localStorage.removeItem('dadosRemocao');
+    counter = 0;
+    document.getElementById('counter').textContent = counter;
+    localStorage.setItem('counter', counter);
+    atualizarTabelaRemocao();
+    const popup = document.getElementById('deleteSuccessPopup');
+    popup.style.display = 'block';
+    setTimeout(() => popup.style.display = 'none', 2500);
+}
+
+function formatDateForFilename() {
+    const date = new Date();
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+}
+
+function gerarRelatorioPDFRemocao() {
+    if (!jsPDFLoaded) {
+        alert('Erro: jsPDF não foi carregado. Verifique sua conexão com a internet.');
+        return;
+    }
+    const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+    if (dados.length === 0) {
+        const popup = document.getElementById('noDataPopup');
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+        return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.setFontSize(16);
+    doc.text('Relatório de Remoção', 10, 10);
+    const groupedData = dados.reduce((acc, curr) => {
+        acc[curr.data] = acc[curr.data] || [];
+        acc[curr.data].push(curr);
+        return acc;
+    }, {});
+    let startY = 20;
+    Object.keys(groupedData).sort().forEach(data => {
+        doc.setFontSize(12);
+        doc.text(`Data: ${sanitizeString(data)}`, 10, startY);
+        startY += 10;
+        const tableData = groupedData[data].map(d => [
+            sanitizeString(d.tipo),
+            sanitizeString(d.protocolo),
+            sanitizeString(d.tecnico) || 'N/A',
+            sanitizeString(d.CTO) || 'N/A',
+            sanitizeString(d.portaRemovida) || 'N/A',
+            sanitizeString(d.observacao) || 'N/A',
+            d.portas.map(p => `${p.porta}: ${sanitizeString(p.codigo) || 'N/A'} - ${sanitizeString(p.status) || 'Nenhum'}`).join('\n')
+        ]);
+        doc.autoTable({
+            head: [['Tipo', 'Protocolo', 'Técnico', 'CTO', 'Porta Removida', 'Observação', 'Portas']],
+            body: tableData,
+            startY: startY,
+            styles: { fontSize: 8, cellPadding: 2 },
+            columnStyles: {
+                0: { cellWidth: 20 },
+                1: { cellWidth: 30 },
+                2: { cellWidth: 40 },
+                3: { cellWidth: 30 },
+                4: { cellWidth: 30 },
+                5: { cellWidth: 60 },
+                6: { cellWidth: 100 }
+            }
+        });
+        startY = doc.lastAutoTable.finalY + 10;
+    });
+    const filename = `Relatório Remoção - ${formatDateForFilename()}.pdf`;
+    doc.save(filename);
+    const popup = document.getElementById('reportSuccessPopup');
+    popup.style.display = 'block';
+    setTimeout(() => popup.style.display = 'none', 2500);
+}
+
+// Função para carregar dados do localStorage e filtrar por período
+function getDadosFiltrados(periodo) {
+    const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+    if (periodo === 'all') return dados;
+    
+    const hoje = new Date();
+    const limite = new Date(hoje);
+    limite.setDate(hoje.getDate() - parseInt(periodo));
+    
+    return dados.filter(dado => {
+        const [dia, mes, ano] = dado.data.split('/');
+        const dataDado = new Date(ano, mes - 1, dia);
+        return dataDado >= limite && dataDado <= hoje;
+    });
+}
+
+function atualizarDashboard() {
+    console.log('Iniciando atualizarDashboard');
+    
+    // Verificar se Chart.js está carregado
+    if (!window.Chart) {
+        console.error('Chart.js não está definido. Gráficos não podem ser exibidos.');
+        displayChartError();
+        return;
+    }
+    
+    // Verificar elementos
+    const filtroPeriodo = document.getElementById('filtroPeriodo');
+    const totalAtendimentos = document.getElementById('totalAtendimentos');
+    const canvasDia = document.getElementById('graficoAtendimentosPorDia');
+    const canvasTecnico = document.getElementById('graficoAtendimentosPorTecnico');
+    const canvasMensal = document.getElementById('graficoTotalPorTecnicoMensal');
+    
+    if (!filtroPeriodo || !totalAtendimentos || !canvasDia || !canvasTecnico || !canvasMensal) {
+        console.error('Elementos não encontrados:', {
+            filtroPeriodo: !!filtroPeriodo,
+            totalAtendimentos: !!totalAtendimentos,
+            canvasDia: !!canvasDia,
+            canvasTecnico: !!canvasTecnico,
+            canvasMensal: !!canvasMensal
+        });
+        return;
+    }
+    
+    const periodo = filtroPeriodo.value;
+    console.log('Período:', periodo);
+    
+    // Obter dados
+    const dados = getDadosFiltrados(periodo);
+    console.log('Dados:', dados);
+    
+    totalAtendimentos.textContent = dados.length;
+    
+    if (dados.length === 0) {
+        console.log('Sem dados para gráficos');
+        [canvasDia, canvasTecnico, canvasMensal].forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '16px Arial';
+            ctx.fillText('Sem dados', 10, 50);
+        });
+        return;
+    }
+    
+    // Gráfico: Atendimentos por Dia
+    const atendimentosPorDia = dados.reduce((acc, d) => {
+        if (d.data) acc[d.data] = (acc[d.data] || 0) + 1;
+        return acc;
+    }, {});
+    const datas = Object.keys(atendimentosPorDia).sort((a, b) => {
+        const [da, ma, ya] = a.split('/').map(Number);
+        const [db, mb, yb] = b.split('/').map(Number);
+        return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+    });
+    console.log('Datas:', datas, 'Atendimentos por dia:', atendimentosPorDia);
+    
+    if (window.chartAtendimentosPorDia) window.chartAtendimentosPorDia.destroy();
+    window.chartAtendimentosPorDia = new Chart(canvasDia.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: datas.length ? datas : ['Sem data'],
+            datasets: [{
+                label: 'Atendimentos',
+                data: datas.length ? datas.map(d => atendimentosPorDia[d]) : [0],
+                backgroundColor: '#4CAF50',
+                borderColor: '#388E3C',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+    console.log('Gráfico por dia criado');
+    
+    // Gráfico: Atendimentos por Técnico
+    const tecnicos = [...new Set(dados.map(d => d.tecnico).filter(t => t))];
+    console.log('Técnicos:', tecnicos);
+    const dadosPorTecnico = tecnicos.map(tecnico => ({
+        label: tecnico,
+        data: datas.length ? datas.map(data => dados.filter(d => d.data === data && d.tecnico === tecnico).length) : [0],
+        backgroundColor: getRandomColor()
+    }));
+    
+    if (window.chartAtendimentosPorTecnico) window.chartAtendimentosPorTecnico.destroy();
+    window.chartAtendimentosPorTecnico = new Chart(canvasTecnico.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: datas.length ? datas : ['Sem data'],
+            datasets: dadosPorTecnico.length ? dadosPorTecnico : [{ label: 'Nenhum', data: [0], backgroundColor: '#4CAF50' }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, stacked: true }, x: { stacked: true } },
+            plugins: { legend: { position: 'top' } }
+        }
+    });
+    console.log('Gráfico por técnico criado');
+    
+    // Gráfico: Total por Técnico (Mensal)
+    const porMes = dados.reduce((acc, d) => {
+        if (d.data) {
+            const [, mes, ano] = d.data.split('/').map(Number);
+            const key = `${mes.toString().padStart(2, '0')}/${ano}`;
+            acc[key] = acc[key] || {};
+            acc[key][d.tecnico] = (acc[key][d.tecnico] || 0) + 1;
+        }
+        return acc;
+    }, {});
+    const ultimoMes = Object.keys(porMes).sort((a, b) => {
+        const [ma, ya] = a.split('/').map(Number);
+        const [mb, yb] = b.split('/').map(Number);
+        return new Date(yb, mb - 1) - new Date(ya, ma - 1);
+    })[0] || 'Sem mês';
+    console.log('Último mês:', ultimoMes, 'Dados mensal:', porMes);
+    
+    if (window.chartTotalPorTecnicoMensal) window.chartTotalPorTecnicoMensal.destroy();
+    window.chartTotalPorTecnicoMensal = new Chart(canvasMensal.getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: tecnicos.length ? tecnicos : ['Nenhum técnico'],
+            datasets: [{
+                label: 'Atendimentos Mensais',
+                data: tecnicos.length && porMes[ultimoMes] ? tecnicos.map(t => porMes[ultimoMes][t] || 0) : [0],
+                backgroundColor: tecnicos.length ? tecnicos.map(() => getRandomColor()) : ['#4CAF50']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' }, title: { display: true, text: `Total por Técnico (${ultimoMes})` } }
+        }
+    });
+    console.log('Gráfico mensal criado');
+}
+
+// Função para gerar cores predefinidas
+function getRandomColor() {
+    const colors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+        '#FF9F40', '#E7E9ED', '#C9CBCF', '#7E57C2', '#26A69A'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+}
+
+// Função para atualizar a tabela de Atendimentos Mensais
+function atualizarTabelaMensais() {
+    const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+    const tbody = document.getElementById('atendimentosMensaisTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    dados.forEach(dado => {
+        const qtdPortas = dado.portas.filter(p => p.codigo || p.status).length;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${sanitizeString(dado.data)}</td>
+            <td>${sanitizeString(dado.tecnico) || 'N/A'}</td>
+            <td>${sanitizeString(dado)}</td>
+            <td>${qtdPortas.length}</td>
+            <td><button class="delete-button" onclick="showConfirmPopup('deleteRecordMensais', null, '${sanitizeString(dado.protocolo)}')">Excluir</button></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+</script>
+</body>
+</html>
