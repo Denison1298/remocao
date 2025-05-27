@@ -417,7 +417,30 @@
             <textarea id="text3"></textarea>
             <button class="copy-button" onclick="copyToClipboard('text3')">Copiar</button>
         </div>
+
+<!-- Botão para configurar nomes -->
+    <button onclick="showConfigNomesPopup()" style="margin: 10px; padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Configurar Nomes
+    </button>
+</div>
+
+<!-- Popup para configurar nomes -->
+<div id="configNomesPopup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000;">
+    <h3>Configurar Nomes</h3>
+    <div style="margin-bottom: 10px;">
+        <label for="nomeConferente">Nome do Conferente:</label><br>
+        <input type="text" id="nomeConferente" style="width: 200px; padding: 5px; margin: 5px 0;" placeholder="Ex.: Denison Santos">
     </div>
+    <div style="margin-bottom: 10px;">
+        <label for="nomeAtendente">Nome do Atendente (Saudação):</label><br>
+        <input type="text" id="nomeAtendente" style="width: 200px; padding: 5px; margin: 5px 0;" placeholder="Ex.: João Silva">
+    </div>
+    <button onclick="saveNomesConfig()" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px;">Salvar</button>
+    <button onclick="closeConfigNomesPopup()" style="padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; margin-left: 10px;">Cancelar</button>
+</div>
+
+<!-- Overlay para escurecer o fundo -->
+<div id="configNomesOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
 
     <!-- Tab R1 -->
     <div id="tab2" class="tab-content">
@@ -984,6 +1007,14 @@ window.onload = async function() {
         counter = parseInt(savedCounter);
         document.getElementById('counter').textContent = counter;
     }
+    
+    // Inicializar saudação com nome do atendente
+    const nomeAtendente = localStorage.getItem('nomeAtendente') || 'Denison';
+    const saudacaoOutput = document.getElementById('text1');
+    if (saudacaoOutput) {
+        saudacaoOutput.value = `Olá, tudo bem? Meu nome é ${nomeAtendente} e serei responsável pelo seu atendimento.`;
+    }
+    
     try {
         atualizarTabelaRemocao();
         atualizarTabelaMensais();
@@ -1060,7 +1091,16 @@ function copyToClipboard(id) {
         console.error(`Elemento com ID ${id} não encontrado`);
         return;
     }
-    const text = sanitizeString(element.value);
+    
+    // Obter nome do atendente do localStorage
+    const nomeAtendente = localStorage.getItem('nomeAtendente') || 'Denison';
+    
+    // Gerar saudação com o nome do atendente para text1
+    let text = sanitizeString(element.value);
+    if (id === 'text1') {
+        text = `Olá, tudo bem? Meu nome é ${nomeAtendente} e serei responsável pelo seu atendimento.`;
+    }
+    
     if (text.trim() === '') {
         const popup = document.getElementById('noDataToCopyPopup');
         if (popup) {
@@ -1158,7 +1198,10 @@ function copiarDados(formId) {
         }
     }
     
-    const header = "***** SEGUE A VALIDAÇÃO *****\nConferente: Denison Santos\n\n";
+    // Obter nome do conferente do localStorage
+    const nomeConferente = localStorage.getItem('nomeConferente') || 'Denison Santos';
+    
+    const header = `***** SEGUE A VALIDAÇÃO *****\nConferente: ${nomeConferente}\n\n`;
     const text = `${header}Protocolo: ${protocolo || ''}\nTécnico: ${tecnico || ''}\nCódigo: ${codigo || ''}\nCliente: ${cliente || ''}\nCTO: ${CTO || ''}\nPorta Removida: ${portaRemovida || ''}\n\nObservação: ${observacao || ''}\n\nPortas:\n\n${portasText || ''}`;
     
     if (!text.trim()) {
@@ -1761,6 +1804,58 @@ function atualizarDashboard() {
         console.error('Erro ao criar gráfico mensal por técnico:', error);
         displayNoData(containerMensal);
     }
+}
+
+// Função para abrir o popup de configuração de nomes
+function showConfigNomesPopup() {
+    const nomeConferente = localStorage.getItem('nomeConferente') || 'Denison Santos';
+    const nomeAtendente = localStorage.getItem('nomeAtendente') || 'Denison';
+    
+    const inputConferente = document.getElementById('nomeConferente');
+    const inputAtendente = document.getElementById('nomeAtendente');
+    
+    if (inputConferente) inputConferente.value = nomeConferente;
+    if (inputAtendente) inputAtendente.value = nomeAtendente;
+    
+    const popup = document.getElementById('configNomesPopup');
+    const overlay = document.getElementById('configNomesOverlay');
+    if (popup) popup.style.display = 'block';
+    if (overlay) overlay.style.display = 'block';
+}
+
+// Função para salvar os nomes configurados
+function saveNomesConfig() {
+    const inputConferente = document.getElementById('nomeConferente');
+    const inputAtendente = document.getElementById('nomeAtendente');
+    
+    const nomeConferente = sanitizeString(inputConferente ? inputConferente.value : '') || 'Denison Santos';
+    const nomeAtendente = sanitizeString(inputAtendente ? inputAtendente.value : '') || 'Denison';
+    
+    localStorage.setItem('nomeConferente', nomeConferente);
+    localStorage.setItem('nomeAtendente', nomeAtendente);
+    
+    // Atualizar o textarea de saudação com o novo nome
+    const saudacaoOutput = document.getElementById('text1');
+    if (saudacaoOutput) {
+        saudacaoOutput.value = `Olá, tudo bem? Meu nome é ${nomeAtendente} e serei responsável pelo seu atendimento.`;
+    }
+    
+    closeConfigNomesPopup();
+    
+    const popup = document.getElementById('customPopup');
+    if (popup) {
+        popup.textContent = 'Nomes salvos com sucesso!';
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+    }
+}
+
+// Função para fechar o popup de configuração
+function closeConfigNomesPopup() {
+    const popup = document.getElementById('configNomesPopup');
+    const overlay = document.getElementById('configNomesOverlay');
+    if (popup) popup.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
 }
 </script>
 </body>
