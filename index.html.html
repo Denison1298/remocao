@@ -889,7 +889,7 @@
     </div>
 
     <script>
-  /**
+ /**
  * NOTA: Para evitar erros com a Clipboard API, execute esta aplicação em um ambiente seguro ou localhost.
  * A Clipboard API requer um contexto seguro para funcionar corretamente.
  */
@@ -949,7 +949,7 @@ function sanitizeString(str) {
 
 // Função para converter data no formato DD/MM/YYYY para objeto Date
 function parseDateBR(dateStr) {
-    if (!dateStr) return null;
+    if (!dateStr || typeof dateStr !== 'string' || !dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) return null;
     const [day, month, year] = dateStr.split('/').map(Number);
     return new Date(year, month - 1, day);
 }
@@ -984,17 +984,21 @@ window.onload = async function() {
         counter = parseInt(savedCounter);
         document.getElementById('counter').textContent = counter;
     }
-    atualizarTabelaRemocao();
-    atualizarTabelaMensais();
+    try {
+        atualizarTabelaRemocao();
+        atualizarTabelaMensais();
+    } catch (error) {
+        console.error('Erro ao inicializar tabelas:', error);
+    }
     
     try {
         await loadApexCharts();
-        if (document.getElementById('tab13').classList.contains('active')) {
+        if (document.getElementById('tab13') && document.getElementById('tab13').classList.contains('active')) {
             atualizarDashboard();
         }
     } catch (error) {
         console.error('Erro ao carregar ApexCharts:', error);
-        if (document.getElementById('tab13').classList.contains('active')) {
+        if (document.getElementById('tab13') && document.getElementById('tab13').classList.contains('active')) {
             displayChartError();
         }
     }
@@ -1019,15 +1023,20 @@ function resetCounter() {
 
 function launchRocket() {
     const rocket = document.getElementById('rocket');
-    rocket.classList.add('launch');
-    setTimeout(() => rocket.classList.remove('launch'), 500);
+    if (rocket) {
+        rocket.classList.add('launch');
+        setTimeout(() => rocket.classList.remove('launch'), 500);
+    }
 }
 
 function openTab(tabId, element) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    element.classList.add('active');
+    const tabElement = document.getElementById(tabId);
+    if (tabElement) {
+        tabElement.classList.add('active');
+        element.classList.add('active');
+    }
     
     if (tabId === 'tab13') {
         if (typeof ApexCharts !== 'undefined') {
@@ -1035,6 +1044,12 @@ function openTab(tabId, element) {
         } else {
             console.error('ApexCharts não carregado. Gráficos não podem ser exibidos.');
             displayChartError();
+        }
+    } else if (tabId === 'tabMensais') {
+        try {
+            atualizarTabelaMensais();
+        } catch (error) {
+            console.error('Erro ao atualizar tabela mensal:', error);
         }
     }
 }
@@ -1048,18 +1063,22 @@ function copyToClipboard(id) {
     const text = sanitizeString(element.value);
     if (text.trim() === '') {
         const popup = document.getElementById('noDataToCopyPopup');
-        popup.textContent = 'Não há dados para copiar!';
-        popup.style.display = 'block';
-        setTimeout(() => popup.style.display = 'none', 2500);
+        if (popup) {
+            popup.textContent = 'Não há dados para copiar!';
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+        }
         return;
     }
 
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
             const popup = document.getElementById('customPopup');
-            popup.textContent = 'Texto copiado com sucesso!';
-            popup.style.display = 'block';
-            setTimeout(() => popup.style.display = 'none', 2500);
+            if (popup) {
+                popup.textContent = 'Texto copiado com sucesso!';
+                popup.style.display = 'block';
+                setTimeout(() => popup.style.display = 'none', 2500);
+            }
         }).catch(err => {
             console.error('Erro ao copiar com Clipboard API:', err);
             showClipboardError(text);
@@ -1084,9 +1103,11 @@ function showClipboardError(text) {
 
         if (successful) {
             const popup = document.getElementById('customPopup');
-            popup.textContent = 'Texto copiado com sucesso!';
-            popup.style.display = 'block';
-            setTimeout(() => popup.style.display = 'none', 2500);
+            if (popup) {
+                popup.textContent = 'Texto copiado com sucesso!';
+                popup.style.display = 'block';
+                setTimeout(() => popup.style.display = 'none', 2500);
+            }
             return;
         } else {
             console.warn('Fallback com document.execCommand falhou');
@@ -1096,21 +1117,26 @@ function showClipboardError(text) {
     }
 
     const popup = document.getElementById('clipboardErrorPopup');
-    popup.textContent = 'Erro ao copiar. Por favor, copie manualmente.';
-    popup.style.display = 'block';
-    setTimeout(() => popup.style.display = 'none', 2500);
+    if (popup) {
+        popup.textContent = 'Erro ao copiar. Por favor, copie manualmente.';
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+    }
 
     const fallbackContainer = document.getElementById('copyFallbackContainer');
     const fallbackText = document.getElementById('copyFallbackText');
-    fallbackText.value = text;
-    fallbackContainer.style.display = 'block';
-    document.getElementById('confirmOverlay').style.display = 'block';
+    if (fallbackContainer && fallbackText) {
+        fallbackText.value = text;
+        fallbackContainer.style.display = 'block';
+        document.getElementById('confirmOverlay').style.display = 'block';
+    }
 }
 
 function closeCopyFallback() {
     const fallbackContainer = document.getElementById('copyFallbackContainer');
-    fallbackContainer.style.display = 'none';
-    document.getElementById('confirmOverlay').style.display = 'none';
+    const confirmOverlay = document.getElementById('confirmOverlay');
+    if (fallbackContainer) fallbackContainer.style.display = 'none';
+    if (confirmOverlay) confirmOverlay.style.display = 'none';
 }
 
 function copiarDados(formId) {
@@ -1137,18 +1163,22 @@ function copiarDados(formId) {
     
     if (!text.trim()) {
         const popup = document.getElementById('noDataToCopyPopup');
-        popup.textContent = 'Não há dados para copiar!';
-        popup.style.display = 'block';
-        setTimeout(() => popup.style.display = 'none', 2500);
+        if (popup) {
+            popup.textContent = 'Não há dados para copiar!';
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+        }
         return;
     }
     
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
             const popup = document.getElementById('customPopup');
-            popup.textContent = 'Dados copiados com sucesso!';
-            popup.style.display = 'block';
-            setTimeout(() => popup.style.display = 'none', 2500);
+            if (popup) {
+                popup.textContent = 'Dados copiados com sucesso!';
+                popup.style.display = 'block';
+                setTimeout(() => popup.style.display = 'none', 2500);
+            }
         }).catch(err => {
             console.error('Erro ao copiar com Clipboard API:', err);
             showClipboardError(text);
@@ -1167,9 +1197,14 @@ function showConfirmPopup(action, formId = null, protocolo = null) {
                    action === 'clearAll' ? 'Deseja limpar todos os dados salvos?' : 
                    action === 'resetCounter' ? 'Deseja zerar o contador?' :
                    'Deseja excluir este registro?';
-    document.getElementById('confirmMessage').textContent = message;
-    document.getElementById('confirmPopup').style.display = 'block';
-    document.getElementById('confirmOverlay').style.display = 'block';
+    const confirmMessage = document.getElementById('confirmMessage');
+    if (confirmMessage) {
+        confirmMessage.textContent = message;
+    }
+    const confirmPopup = document.getElementById('confirmPopup');
+    const confirmOverlay = document.getElementById('confirmOverlay');
+    if (confirmPopup) confirmPopup.style.display = 'block';
+    if (confirmOverlay) confirmOverlay.style.display = 'block';
 }
 
 function confirmAction() {
@@ -1192,15 +1227,19 @@ function confirmAction() {
         atualizarTabelaMensais();
         atualizarDashboard();
         const popup = document.getElementById('deleteSuccessPopup');
-        popup.style.display = 'block';
-        setTimeout(() => popup.style.display = 'none', 2500);
+        if (popup) {
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+        }
     }
     cancelAction();
 }
 
 function cancelAction() {
-    document.getElementById('confirmPopup').style.display = 'none';
-    document.getElementById('confirmOverlay').style.display = 'none';
+    const confirmPopup = document.getElementById('confirmPopup');
+    const confirmOverlay = document.getElementById('confirmOverlay');
+    if (confirmPopup) confirmPopup.style.display = 'none';
+    if (confirmOverlay) confirmOverlay.style.display = 'none';
     currentAction = null;
     currentFormId = null;
     currentProtocolo = null;
@@ -1208,13 +1247,14 @@ function cancelAction() {
 
 function apagarDados(formId) {
     const suffix = formId === 'remo' ? '' : formId === 'remo2' ? '2' : formId === 'remo3' ? '3' : formId === 'remo4' ? '4' : '5';
-    const protocolo = document.getElementById(`protocolo${suffix}`).value;
-
-    if (!protocolo) {
+    const protocolo = document.getElementById(`protocolo${suffix}`);
+    if (!protocolo || !protocolo.value) {
         const popup = document.getElementById('noDataToCopyPopup');
-        popup.textContent = 'Não há itens para apagar!';
-        popup.style.display = 'block';
-        setTimeout(() => popup.style.display = 'none', 2500);
+        if (popup) {
+            popup.textContent = 'Não há itens para apagar!';
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+        }
         return;
     }
 
@@ -1230,25 +1270,31 @@ function apagarDados(formId) {
         document.getElementById(`porta${i}-status${suffix}`).value = '';
     }
     const popup = document.getElementById('deleteSuccessPopup');
-    popup.style.display = 'block';
-    setTimeout(() => popup.style.display = 'none', 2500);
+    if (popup) {
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+    }
 }
 
 function salvarDados(formId) {
     const suffix = formId === 'remo' ? '' : formId === 'remo2' ? '2' : formId === 'remo3' ? '3' : formId === 'remo4' ? '4' : '5';
-    const tipo = formId === 'remo' ? 'R1' : formId === 'remo2' ? 'R2' : 'R3';
+    const tipo = formId === 'remo' ? 'R1' : formId === 'remo2' ? 'R2' : formId === 'remo3' ? 'R3' : formId === 'remo4' ? 'R4' : 'R5';
     const protocolo = sanitizeString(document.getElementById(`protocolo${suffix}`).value);
     if (!protocolo) {
         const popup = document.getElementById('emptyProtocolPopup');
-        popup.style.display = 'block';
-        setTimeout(() => popup.style.display = 'none', 2500);
+        if (popup) {
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+        }
         return;
     }
     let dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
     if (dados.some(d => d.protocolo === protocolo)) {
         const popup = document.getElementById('errorPopup');
-        popup.style.display = 'block';
-        setTimeout(() => popup.style.display = 'none', 2500);
+        if (popup) {
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+        }
         return;
     }
     const dataAtual = new Date().toLocaleDateString('pt-BR');
@@ -1271,33 +1317,55 @@ function salvarDados(formId) {
     localStorage.setItem('dadosRemocao', JSON.stringify(dados));
     increaseCounter();
     atualizarTabelaRemocao();
+    atualizarTabelaMensais();
+    atualizarDashboard();
     const popup = document.getElementById('customPopup');
-    popup.textContent = 'Dados salvos com sucesso!';
-    popup.style.display = 'block';
-    setTimeout(() => popup.style.display = 'none', 2500);
+    if (popup) {
+        popup.textContent = 'Dados salvos com sucesso!';
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+    }
 }
 
 function atualizarTabelaRemocao() {
-    const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
-    const tbody = document.getElementById('dadosTableRemocao').querySelector('tbody');
-    tbody.innerHTML = '';
-    dados.forEach(dado => {
-        const portasText = dado.portas.map(p => `${p.porta}: ${sanitizeString(p.codigo) || 'N/A'} - ${sanitizeString(p.status) || 'Nenhum'}`).join('<br>');
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${sanitizeString(dado.data)}</td>
-            <td>${sanitizeString(dado.tipo)}</td>
-            <td>${sanitizeString(dado.protocolo)}</td>
-            <td>${sanitizeString(dado.tecnico) || 'N/A'}</td>
-            <td>${sanitizeString(dado.CTO) || 'N/A'}</td>
-            <td>${sanitizeString(dado.portaRemovida) || 'N/A'}</td>
-            <td>${sanitizeString(dado.observacao) || 'N/A'}</td>
-            <td>${portasText || 'Nenhuma'}</td>
-            <td><button class="delete-button" onclick="showConfirmPopup('deleteRecord', null, '${sanitizeString(dado.protocolo)}')">Excluir</button></td>
-        `;
-        tbody.appendChild(row);
-    });
-    document.getElementById('totalGeralRemocao').textContent = dados.length;
+    try {
+        const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+        const table = document.getElementById('dadosTableRemocao');
+        if (!table) {
+            console.error('Tabela com ID "dadosTableRemocao" não encontrada');
+            return;
+        }
+        const tbody = table.querySelector('tbody');
+        if (!tbody) {
+            console.error('Elemento tbody não encontrado em dadosTableRemocao');
+            return;
+        }
+        tbody.innerHTML = '';
+        dados.forEach(dado => {
+            if (!dado || typeof dado !== 'object') return;
+            const portasText = Array.isArray(dado.portas) ? dado.portas.map(p => `${p.porta}: ${sanitizeString(p.codigo) || 'N/A'} - ${sanitizeString(p.status) || 'Nenhum'}`).join('<br>') : 'Nenhuma';
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${sanitizeString(dado.data) || 'N/A'}</td>
+                <td>${sanitizeString(dado.tipo) || 'N/A'}</td>
+                <td>${sanitizeString(dado.protocolo) || 'N/A'}</td>
+                <td>${sanitizeString(dado.tecnico) || 'N/A'}</td>
+                <td>${sanitizeString(dado.CTO) || 'N/A'}</td>
+                <td>${sanitizeString(dado.portaRemovida) || 'N/A'}</td>
+                <td>${sanitizeString(dado.observacao) || 'N/A'}</td>
+                <td>${portasText}</td>
+                <td><button class="delete-button" onclick="showConfirmPopup('deleteRecord', null, '${sanitizeString(dado.protocolo) || ''}')">Excluir</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+        const totalGeralRemocao = document.getElementById('totalGeralRemocao');
+        if (totalGeralRemocao) {
+            totalGeralRemocao.textContent = dados.length;
+        }
+        console.log('Tabela de remoção atualizada');
+    } catch (error) {
+        console.error('Erro ao atualizar tabela de remoção:', error);
+    }
 }
 
 function excluirRegistroRemocao(protocolo) {
@@ -1310,9 +1378,13 @@ function limparLocalStorageRemocao() {
     document.getElementById('counter').textContent = counter;
     localStorage.setItem('counter', counter);
     atualizarTabelaRemocao();
+    atualizarTabelaMensais();
+    atualizarDashboard();
     const popup = document.getElementById('deleteSuccessPopup');
-    popup.style.display = 'block';
-    setTimeout(() => popup.style.display = 'none', 2500);
+    if (popup) {
+        popup.style.display = 'block';
+        setTimeout(() => popup.style.display = 'none', 2500);
+    }
 }
 
 function formatDateForFilename() {
@@ -1328,78 +1400,149 @@ function gerarRelatorioPDFRemocao() {
         alert('Erro: jsPDF não foi carregado. Verifique sua conexão com a internet.');
         return;
     }
-    const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
-    if (dados.length === 0) {
-        const popup = document.getElementById('noDataPopup');
-        popup.style.display = 'block';
-        setTimeout(() => popup.style.display = 'none', 2500);
-        return;
-    }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape' });
-    doc.setFontSize(16);
-    doc.text('Relatório de Remoção', 10, 10);
-    const groupedData = dados.reduce((acc, curr) => {
-        acc[curr.data] = acc[curr.data] || [];
-        acc[curr.data].push(curr);
-        return acc;
-    }, {});
-    let startY = 20;
-    Object.keys(groupedData).sort((a, b) => parseDateBR(a) - parseDateBR(b)).forEach(data => {
-        doc.setFontSize(12);
-        doc.text(`Data: ${sanitizeString(data)}`, 10, startY);
-        startY += 10;
-        const tableData = groupedData[data].map(d => [
-            sanitizeString(d.tipo),
-            sanitizeString(d.protocolo),
-            sanitizeString(d.tecnico) || 'N/A',
-            sanitizeString(d.CTO) || 'N/A',
-            sanitizeString(d.portaRemovida) || 'N/A',
-            sanitizeString(d.observacao) || 'N/A',
-            d.portas.map(p => `${p.porta}: ${sanitizeString(p.codigo) || 'N/A'} - ${sanitizeString(p.status) || 'Nenhum'}`).join('\n')
-        ]);
-        doc.autoTable({
-            head: [['Tipo', 'Protocolo', 'Técnico', 'CTO', 'Porta Removida', 'Observação', 'Portas']],
-            body: tableData,
-            startY: startY,
-            styles: { fontSize: 8, cellPadding: 2 },
-            columnStyles: {
-                0: { cellWidth: 20 },
-                1: { cellWidth: 30 },
-                2: { cellWidth: 40 },
-                3: { cellWidth: 30 },
-                4: { cellWidth: 30 },
-                5: { cellWidth: 60 },
-                6: { cellWidth: 100 }
+    try {
+        const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+        if (dados.length === 0) {
+            const popup = document.getElementById('noDataPopup');
+            if (popup) {
+                popup.style.display = 'block';
+                setTimeout(() => popup.style.display = 'none', 2500);
             }
+            return;
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape' });
+        doc.setFontSize(16);
+        doc.text('Relatório de Remoção', 10, 10);
+        const groupedData = dados.reduce((acc, curr) => {
+            acc[curr.data] = acc[curr.data] || [];
+            acc[curr.data].push(curr);
+            return acc;
+        }, {});
+        let startY = 20;
+        Object.keys(groupedData).sort((a, b) => (parseDateBR(a) || new Date(0)) - (parseDateBR(b) || new Date(0))).forEach(data => {
+            doc.setFontSize(12);
+            doc.text(`Data: ${sanitizeString(data) || 'N/A'}`, 10, startY);
+            startY += 10;
+            const tableData = groupedData[data].map(d => [
+                sanitizeString(d.tipo) || 'N/A',
+                sanitizeString(d.protocolo) || 'N/A',
+                sanitizeString(d.tecnico) || 'N/A',
+                sanitizeString(d.CTO) || 'N/A',
+                sanitizeString(d.portaRemovida) || 'N/A',
+                sanitizeString(d.observacao) || 'N/A',
+                Array.isArray(d.portas) ? d.portas.map(p => `${p.porta}: ${sanitizeString(p.codigo) || 'N/A'} - ${sanitizeString(p.status) || 'Nenhum'}`).join('\n') : 'Nenhuma'
+            ]);
+            doc.autoTable({
+                head: [['Tipo', 'Protocolo', 'Técnico', 'CTO', 'Porta Removida', 'Observação', 'Portas']],
+                body: tableData,
+                startY: startY,
+                styles: { fontSize: 8, cellPadding: 2 },
+                columnStyles: {
+                    0: { cellWidth: 20 },
+                    1: { cellWidth: 30 },
+                    2: { cellWidth: 40 },
+                    3: { cellWidth: 30 },
+                    4: { cellWidth: 30 },
+                    5: { cellWidth: 60 },
+                    6: { cellWidth: 100 }
+                }
+            });
+            startY = doc.autoTable.previous.finalY + 10;
         });
-        startY = doc.autoTable.previous.finalY + 10;
-    });
-    const filename = `Relatório Remoção - ${formatDateForFilename()}.pdf`;
-    doc.save(filename);
-    const popup = document.getElementById('reportSuccessPopup');
-    popup.style.display = 'block';
-    setTimeout(() => popup.style.display = 'none', 2500);
+        const filename = `Relatório Remoção - ${formatDateForFilename()}.pdf`;
+        doc.save(filename);
+        const popup = document.getElementById('reportSuccessPopup');
+        if (popup) {
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 2500);
+        }
+    } catch (error) {
+        console.error('Erro ao gerar PDF:', error);
+    }
 }
 
 function getDadosFiltrados(periodo) {
-    const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
-    console.log('Dados do localStorage:', dados);
-    if (periodo === 'all') return dados;
-    
-    const hoje = new Date();
-    const limite = new Date(hoje);
-    limite.setDate(hoje.getDate() - parseInt(periodo));
-    
-    return dados.filter(dado => {
-        const [dia, mes, ano] = dado.data.split('/');
-        const dataDado = new Date(ano, mes - 1, dia);
-        return dataDado >= limite && dataDado <= hoje;
-    });
+    try {
+        const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+        console.log('Dados do localStorage:', JSON.stringify(dados, null, 2));
+        if (periodo === 'all') return dados;
+        
+        const hoje = new Date();
+        const limite = new Date(hoje);
+        limite.setDate(hoje.getDate() - parseInt(periodo));
+        
+        return dados.filter(dado => {
+            if (!dado || !dado.data) return false;
+            const [dia, mes, ano] = dado.data.split('/').map(Number);
+            if (isNaN(dia) || isNaN(mes) || isNaN(ano)) return false;
+            const dataDado = new Date(ano, mes - 1, dia);
+            return dataDado >= limite && dataDado <= hoje;
+        });
+    } catch (error) {
+        console.error('Erro ao filtrar dados:', error);
+        return [];
+    }
+}
+
+function atualizarTabelaMensais() {
+    console.log('Iniciando atualizarTabelaMensais at', new Date().toLocaleString());
+    try {
+        const table = document.getElementById('atendimentosMensaisTable');
+        if (!table) {
+            console.error('Tabela com ID "atendimentosMensaisTable" não encontrada');
+            return;
+        }
+        const tbody = table.querySelector('tbody');
+        if (!tbody) {
+            console.error('Elemento tbody não encontrado em atendimentosMensaisTable');
+            return;
+        }
+        tbody.innerHTML = '';
+
+        const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
+        console.log('Dados para tabela mensal:', JSON.stringify(dados, null, 2));
+
+        if (!Array.isArray(dados) || dados.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="5" style="text-align: center;">Sem dados para exibir</td>';
+            tbody.appendChild(row);
+            console.log('Nenhum dado disponível para tabela mensal');
+            return;
+        }
+
+        dados.forEach((dado, index) => {
+            if (!dado || typeof dado !== 'object') {
+                console.warn(`Registro inválido no índice ${index}:`, dado);
+                return;
+            }
+            const qtdPortas = Array.isArray(dado.portas) ? dado.portas.filter(p => p && (p.codigo || p.status)).length : 0;
+            const protocolo = sanitizeString(dado.protocolo) || 'N/A';
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${sanitizeString(dado.data) || 'N/A'}</td>
+                <td>${sanitizeString(dado.tecnico) || 'N/A'}</td>
+                <td>${protocolo}</td>
+                <td>${qtdPortas}</td>
+                <td><button class="delete-button" onclick="showConfirmPopup('deleteRecordMensais', null, '${protocolo}')">Excluir</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+        console.log('Tabela de atendimentos mensais atualizada');
+    } catch (error) {
+        console.error('Erro ao atualizar tabela mensal:', error);
+        const table = document.getElementById('atendimentosMensaisTable');
+        if (table) {
+            const tbody = table.querySelector('tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Erro ao carregar dados</td></tr>';
+            }
+        }
+    }
 }
 
 function atualizarDashboard() {
-    console.log('Iniciando atualizarDashboard');
+    console.log('Iniciando atualizarDashboard at', new Date().toLocaleString());
 
     if (typeof ApexCharts === 'undefined') {
         console.error('ApexCharts não está carregado. Verifique a conexão com o CDN.');
@@ -1431,21 +1574,24 @@ function atualizarDashboard() {
     let dados;
     try {
         dados = getDadosFiltrados(periodo);
-        console.log('Dados filtrados:', dados);
+        console.log('Dados filtrados:', JSON.stringify(dados, null, 2));
     } catch (error) {
         console.error('Erro ao obter dados filtrados:', error);
         displayChartError();
         return;
     }
 
-    totalAtendimentos.textContent = dados.length;
+    totalAtendimentos.textContent = (dados || []).length;
 
     const displayNoData = (container) => {
-        container.innerHTML = '<p style="text-align: center; color: #333; font: 16px Arial;">Sem dados para exibir</p>';
+        if (container) {
+            container.innerHTML = '<p style="text-align: center; color: #333; font: 16px Arial;">Sem dados para exibir</p>';
+            console.log('Exibindo mensagem de sem dados para:', container.id);
+        }
     };
 
-    if (!dados || dados.length === 0) {
-        console.log('Nenhum dado disponível para renderizar gráficos');
+    if (!dados || !Array.isArray(dados) || dados.length === 0) {
+        console.log('Nenhum dado disponível para gráficos');
         [containerDia, containerTecnico, containerMensal].forEach(displayNoData);
         return;
     }
@@ -1453,14 +1599,23 @@ function atualizarDashboard() {
     // Gráfico: Atendimentos por Dia
     try {
         const atendimentosPorDia = dados.reduce((acc, d) => {
-            if (d.data) acc[d.data] = (acc[d.data] || 0) + 1;
+            if (d && d.data && typeof d.data === 'string' && d.data.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                acc[d.data] = (acc[d.data] || 0) + 1;
+            } else {
+                console.warn('Registro ignorado devido a data inválida:', d);
+            }
             return acc;
         }, {});
 
-        const datas = Object.keys(atendimentosPorDia).sort((a, b) => parseDateBR(a) - parseDateBR(b));
+        const datas = Object.keys(atendimentosPorDia).sort((a, b) => {
+            const dateA = parseDateBR(a) || new Date(0);
+            const dateB = parseDateBR(b) || new Date(0);
+            return dateA - dateB;
+        });
         console.log('Datas ordenadas:', datas);
+        console.log('Atendimentos por dia:', atendimentosPorDia);
 
-        containerDia.innerHTML = ''; // Limpar conteúdo anterior
+        containerDia.innerHTML = '';
         new ApexCharts(containerDia, {
             chart: {
                 type: 'bar',
@@ -1480,7 +1635,7 @@ function atualizarDashboard() {
                 forceNiceScale: true,
                 labels: { formatter: val => Math.floor(val) }
             },
-            colors: ['#4CAF50'],
+            colors: ['#FF6384'],
             title: { text: 'Atendimentos por Dia', align: 'center' }
         }).render();
         console.log('Gráfico de atendimentos por dia criado');
@@ -1491,21 +1646,23 @@ function atualizarDashboard() {
 
     // Gráfico: Atendimentos por Técnico (Diário)
     try {
-        const tecnicos = [...new Set(dados.map(d => d.tecnico).filter(t => t))];
+        const tecnicos = [...new Set(dados.map(d => d && d.tecnico).filter(t => t && typeof t === 'string' && t.trim()))];
         console.log('Técnicos encontrados:', tecnicos);
 
-        const seriesData = tecnicos.map(tecnico => ({
-            name: tecnico,
-            data: datas.length ? datas.map(data => dados.filter(d => d.data === data && d.tecnico === tecnico).length) : [0]
+        const seriesData = tecnicos.map(t => ({
+            name: t,
+            data: datas.length ? datas.map(data => dados.filter(d => d && d.data === data && d.tecnico === t).length) : [0]
         }));
+
+        console.log('Séries para atendimentos por técnico:', seriesData);
 
         containerTecnico.innerHTML = '';
         new ApexCharts(containerTecnico, {
             chart: {
                 type: 'bar',
-            height: 200,
-            stacked: true,
-            toolbar: { show: false }
+                height: 200,
+                stacked: true,
+                toolbar: { show: false }
             },
             series: seriesData.length ? seriesData : [{ name: 'Nenhum', data: [0] }],
             xaxis: {
@@ -1517,7 +1674,7 @@ function atualizarDashboard() {
                 forceNiceScale: true,
                 labels: { formatter: val => Math.floor(val) }
             },
-            colors: tecnicos.length ? getUniqueColors(tecnicos.length) : ['#4CAF50'],
+            colors: tecnicos.length ? getUniqueColors(tecnicos.length) : ['#36A2EB'],
             title: { text: 'Atendimentos por Técnico (Diário)', align: 'center' },
             legend: { position: 'top' }
         }).render();
@@ -1530,11 +1687,16 @@ function atualizarDashboard() {
     // Gráfico: Total por Técnico (Mensal)
     try {
         const porMes = dados.reduce((acc, d) => {
-            if (d.data) {
-                const [, mes, ano] = d.data.split('/').map(Number);
-                const key = `${mes.toString().padStart(2, '0')}/${ano}`;
-                acc[key] = acc[key] || {};
-                acc[key][d.tecnico] = (acc[key][d.tecnico] || 0) + 1;
+            if (d && d.data && typeof d.data === 'string' && d.data.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const parts = d.data.split('/');
+                if (parts.length === 3) {
+                    const [, mes, ano] = parts.map(Number);
+                    const key = `${mes.toString().padStart(2, '0')}/${ano}`;
+                    acc[key] = acc[key] || {};
+                    if (d.tecnico && typeof d.tecnico === 'string' && d.tecnico.trim()) {
+                        acc[key][d.tecnico] = (acc[key][d.tecnico] || 0) + 1;
+                    }
+                }
             }
             return acc;
         }, {});
@@ -1548,17 +1710,19 @@ function atualizarDashboard() {
         const ultimoMes = meses[0] || 'Sem mês';
         console.log('Último mês:', ultimoMes, 'Dados mensal:', porMes);
 
+        const tecnicos = [...new Set(dados.map(d => d && d.tecnico).filter(t => t && typeof t === 'string' && t.trim()))];
         const dataMes = tecnicos.length && porMes[ultimoMes] ? tecnicos.map(t => porMes[ultimoMes][t] || 0) : [0];
+        console.log('Dados para gráfico mensal:', dataMes);
 
         containerMensal.innerHTML = '';
         new ApexCharts(containerMensal, {
             chart: {
                 type: 'pie',
-                height: 200,
+                height: 200
             },
             series: dataMes,
             labels: tecnicos.length ? tecnicos : ['Nenhum técnico'],
-            colors: tecnicos.length ? getUniqueColors(tecnicos.length) : ['#4CAF50'],
+            colors: tecnicos.length ? getUniqueColors(tecnicos.length) : ['#FFCE56'],
             title: { text: `Total por Técnico (${ultimoMes})`, align: 'center' },
             legend: { position: 'top' }
         }).render();
@@ -1567,34 +1731,6 @@ function atualizarDashboard() {
         console.error('Erro ao criar gráfico mensal por técnico:', error);
         displayNoData(containerMensal);
     }
-}
-
-function atualizarTabelaMensais() {
-    console.log('Iniciando atualizarTabelaMensais');
-    const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
-    console.log('Dados para tabela mensal:', dados);
-    const tbody = document.getElementById('atendimentosMensaisTable').querySelector('tbody');
-    tbody.innerHTML = '';
-    
-    if (dados.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="5" style="text-align: center;">Sem dados para exibir</td>';
-        tbody.appendChild(row);
-    } else {
-        dados.forEach(dado => {
-            const qtdPortas = dado.portas.filter(p => p.codigo || p.status).length;
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${sanitizeString(dado.data)}</td>
-                <td>${sanitizeString(dado.tecnico) || 'N/A'}</td>
-                <td>${sanitizeString(dado.protocolo)}</td>
-                <td>${qtdPortas}</td>
-                <td><button class="delete-button" onclick="showConfirmPopup('deleteRecordMensais', null, '${sanitizeString(dado.protocolo)}')">Excluir</button></td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-    console.log('Tabela de atendimentos mensais atualizada');
 }
 </script>
 </body>
