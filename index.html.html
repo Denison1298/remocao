@@ -896,7 +896,7 @@
     </div>
 
     <script>
-  /**
+/**
  * NOTA: Para evitar erros com a Clipboard API, execute esta aplicação em um ambiente seguro ou localhost.
  * A Clipboard API requer um contexto seguro para funcionar corretamente.
  */
@@ -954,6 +954,23 @@ function sanitizeString(str) {
     return (str || '').replace(/[\r\n\t]+/g, ' ').trim();
 }
 
+// Função para converter data no formato DD/MM/YYYY para objeto Date
+function parseDateBR(dateStr) {
+    if (!dateStr) return null;
+    const [day, month, year] = dateStr.split('/').map(Number);
+    return new Date(year, month - 1, day);
+}
+
+// Função para gerar uma lista de cores únicas
+function getUniqueColors(count) {
+    const colors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+        '#FF9F40', '#E7E9ED', '#C9CBCF', '#7E57C2', '#26A69A',
+        '#FF5733', '#C70039', '#900C3F', '#581845', '#2ECC71'
+    ];
+    return colors.slice(0, Math.min(count, colors.length));
+}
+
 // Função para exibir erro nos canvases
 function displayChartError() {
     const canvases = [
@@ -966,7 +983,9 @@ function displayChartError() {
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = '16px Arial';
-            ctx.fillText('Erro ao carregar gráficos', 10, 50);
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'center';
+            ctx.fillText('Erro ao carregar gráficos', canvas.width / 2, canvas.height / 2);
         }
     });
 }
@@ -1047,7 +1066,6 @@ function copyToClipboard(id) {
         return;
     }
 
-    // Verifica se a Clipboard API está disponível
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
             const popup = document.getElementById('customPopup');
@@ -1059,14 +1077,12 @@ function copyToClipboard(id) {
             showClipboardError(text);
         });
     } else {
-        // Fallback para ambientes não seguros ou navegadores sem suporte
         console.warn('Clipboard API não disponível ou contexto não seguro');
         showClipboardError(text);
     }
 }
 
 function showClipboardError(text) {
-    // Tenta o fallback com document.execCommand
     try {
         const textArea = document.createElement('textarea');
         textArea.value = text;
@@ -1091,7 +1107,6 @@ function showClipboardError(text) {
         console.error('Erro no fallback de cópia:', err);
     }
 
-    // Se ambos os métodos falharem, exibe o texto em um campo visível
     const popup = document.getElementById('clipboardErrorPopup');
     popup.textContent = 'Erro ao copiar. Por favor, copie manualmente.';
     popup.style.display = 'block';
@@ -1140,7 +1155,6 @@ function copiarDados(formId) {
         return;
     }
     
-    // Verifica se a Clipboard API está disponível
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
             const popup = document.getElementById('customPopup');
@@ -1152,7 +1166,6 @@ function copiarDados(formId) {
             showClipboardError(text);
         });
     } else {
-        // Fallback para ambientes não seguros ou navegadores sem suporte
         console.warn('Clipboard API não disponível ou contexto não seguro');
         showClipboardError(text);
     }
@@ -1209,7 +1222,6 @@ function apagarDados(formId) {
     const suffix = formId === 'remo' ? '' : formId === 'remo2' ? '2' : formId === 'remo3' ? '3' : formId === 'remo4' ? '4' : '5';
     const protocolo = document.getElementById(`protocolo${suffix}`).value;
 
-    // Verifica se o protocolo está vazio
     if (!protocolo) {
         const popup = document.getElementById('noDataToCopyPopup');
         popup.textContent = 'Não há itens para apagar!';
@@ -1218,7 +1230,6 @@ function apagarDados(formId) {
         return;
     }
 
-    // Se o protocolo está preenchido, prossegue com a limpeza
     document.getElementById(`protocolo${suffix}`).value = '';
     document.getElementById(`tecnico${suffix}`).value = '';
     document.getElementById(`codigo${suffix}`).value = '';
@@ -1346,7 +1357,7 @@ function gerarRelatorioPDFRemocao() {
         return acc;
     }, {});
     let startY = 20;
-    Object.keys(groupedData).sort().forEach(data => {
+    Object.keys(groupedData).sort((a, b) => parseDateBR(a) - parseDateBR(b)).forEach(data => {
         doc.setFontSize(12);
         doc.text(`Data: ${sanitizeString(data)}`, 10, startY);
         startY += 10;
@@ -1383,7 +1394,6 @@ function gerarRelatorioPDFRemocao() {
     setTimeout(() => popup.style.display = 'none', 2500);
 }
 
-// Função para carregar dados do localStorage e filtrar por período
 function getDadosFiltrados(periodo) {
     const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
     console.log('Dados do localStorage:', dados);
@@ -1403,14 +1413,12 @@ function getDadosFiltrados(periodo) {
 function atualizarDashboard() {
     console.log('Iniciando atualizarDashboard');
     
-    // Verificar se Chart.js está carregado
     if (!window.Chart) {
         console.error('Chart.js não está definido. Gráficos não podem ser exibidos.');
         displayChartError();
         return;
     }
     
-    // Verificar elementos
     const filtroPeriodo = document.getElementById('filtroPeriodo');
     const totalAtendimentos = document.getElementById('totalAtendimentos');
     const canvasDia = document.getElementById('graficoAtendimentosPorDia');
@@ -1418,56 +1426,59 @@ function atualizarDashboard() {
     const canvasMensal = document.getElementById('graficoTotalPorTecnicoMensal');
     
     if (!filtroPeriodo || !totalAtendimentos || !canvasDia || !canvasTecnico || !canvasMensal) {
-        console.error('Elementos não encontrados:', {
-            filtroPeriodo: !!filtroPeriodo,
-            totalAtendimentos: !!totalAtendimentos,
-            canvasDia: !!canvasDia,
-            canvasTecnico: !!canvasTecnico,
-            canvasMensal: !!canvasMensal
-        });
+        console.error('Elementos do dashboard não encontrados');
+        displayChartError();
         return;
     }
     
     const periodo = filtroPeriodo.value;
-    console.log('Período:', periodo);
+    console.log('Período selecionado:', periodo);
     
-    // Obter dados
     const dados = getDadosFiltrados(periodo);
     console.log('Dados filtrados:', dados);
     
     totalAtendimentos.textContent = dados.length;
     
+    const displayNoData = (canvas) => {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#333';
+        ctx.textAlign = 'center';
+        ctx.fillText('Sem dados para exibir', canvas.width / 2, canvas.height / 2);
+    };
+    
     if (dados.length === 0) {
         console.log('Sem dados para gráficos');
-        [canvasDia, canvasTecnico, canvasMensal].forEach(canvas => {
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '16px Arial';
-            ctx.fillText('Sem dados', 10, 50);
-        });
+        [canvasDia, canvasTecnico, canvasMensal].forEach(displayNoData);
         return;
     }
     
     // Gráfico: Atendimentos por Dia
     const atendimentosPorDia = dados.reduce((acc, d) => {
-        if (d.data) acc[d.data] = (acc[d.data] || 0) + 1;
+        if (d.data) {
+            acc[d.data] = (acc[d.data] || 0) + 1;
+        }
         return acc;
     }, {});
-    const datas = Object.keys(atendimentosPorDia).sort((a, b) => {
-        const [da, ma, ya] = a.split('/').map(Number);
-        const [db, mb, yb] = b.split('/').map(Number);
-        return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
-    });
-    console.log('Datas:', datas, 'Atendimentos por dia:', atendimentosPorDia);
     
-    if (window.chartAtendimentosPorDia) window.chartAtendimentosPorDia.destroy();
+    const datas = Object.keys(atendimentosPorDia).sort((a, b) => {
+        const dateA = parseDateBR(a);
+        const dateB = parseDateBR(b);
+        return dateA - dateB;
+    });
+    
+    if (window.chartAtendimentosPorDia) {
+        window.chartAtendimentosPorDia.destroy();
+    }
+    
     window.chartAtendimentosPorDia = new Chart(canvasDia.getContext('2d'), {
         type: 'bar',
         data: {
             labels: datas.length ? datas : ['Sem data'],
             datasets: [{
                 label: 'Atendimentos',
-                data: datas.length ? datas.map(d => atendimentosPorDia[d]) : [0],
+                data: datas.length ? datas.map(d => atendimentosPorDia[d] || 0) : [0],
                 backgroundColor: '#4CAF50',
                 borderColor: '#388E3C',
                 borderWidth: 1
@@ -1476,21 +1487,32 @@ function atualizarDashboard() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true } }
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                x: { ticks: { maxRotation: 45, minRotation: 45 } }
+            },
+            plugins: {
+                legend: { display: true, position: 'top' },
+                title: { display: true, text: 'Atendimentos por Dia' }
+            }
         }
     });
-    console.log('Gráfico por dia criado');
+    console.log('Gráfico de atendimentos por dia criado');
     
-    // Gráfico: Atendimentos por Técnico
+    // Gráfico: Atendimentos por Técnico (Diário)
     const tecnicos = [...new Set(dados.map(d => d.tecnico).filter(t => t))];
-    console.log('Técnicos:', tecnicos);
-    const dadosPorTecnico = tecnicos.map(tecnico => ({
+    console.log('Técnicos encontrados:', tecnicos);
+    
+    const dadosPorTecnico = tecnicos.map((tecnico, index) => ({
         label: tecnico,
         data: datas.length ? datas.map(data => dados.filter(d => d.data === data && d.tecnico === tecnico).length) : [0],
-        backgroundColor: getRandomColor()
+        backgroundColor: getUniqueColors(tecnicos.length)[index]
     }));
     
-    if (window.chartAtendimentosPorTecnico) window.chartAtendimentosPorTecnico.destroy();
+    if (window.chartAtendimentosPorTecnico) {
+        window.chartAtendimentosPorTecnico.destroy();
+    }
+    
     window.chartAtendimentosPorTecnico = new Chart(canvasTecnico.getContext('2d'), {
         type: 'bar',
         data: {
@@ -1500,11 +1522,17 @@ function atualizarDashboard() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true, stacked: true }, x: { stacked: true } },
-            plugins: { legend: { position: 'top' } }
+            scales: {
+                y: { beginAtZero: true, stacked: true, ticks: { stepSize: 1 } },
+                x: { stacked: true, ticks: { maxRotation: 45, minRotation: 45 } }
+            },
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: true, text: 'Atendimentos por Técnico (Diário)' }
+            }
         }
     });
-    console.log('Gráfico por técnico criado');
+    console.log('Gráfico de atendimentos por técnico criado');
     
     // Gráfico: Total por Técnico (Mensal)
     const porMes = dados.reduce((acc, d) => {
@@ -1516,14 +1544,20 @@ function atualizarDashboard() {
         }
         return acc;
     }, {});
-    const ultimoMes = Object.keys(porMes).sort((a, b) => {
+    
+    const meses = Object.keys(porMes).sort((a, b) => {
         const [ma, ya] = a.split('/').map(Number);
         const [mb, yb] = b.split('/').map(Number);
         return new Date(yb, mb - 1) - new Date(ya, ma - 1);
-    })[0] || 'Sem mês';
+    });
+    
+    const ultimoMes = meses[0] || 'Sem mês';
     console.log('Último mês:', ultimoMes, 'Dados mensal:', porMes);
     
-    if (window.chartTotalPorTecnicoMensal) window.chartTotalPorTecnicoMensal.destroy();
+    if (window.chartTotalPorTecnicoMensal) {
+        window.chartTotalPorTecnicoMensal.destroy();
+    }
+    
     window.chartTotalPorTecnicoMensal = new Chart(canvasMensal.getContext('2d'), {
         type: 'pie',
         data: {
@@ -1531,46 +1565,46 @@ function atualizarDashboard() {
             datasets: [{
                 label: 'Atendimentos Mensais',
                 data: tecnicos.length && porMes[ultimoMes] ? tecnicos.map(t => porMes[ultimoMes][t] || 0) : [0],
-                backgroundColor: tecnicos.length ? tecnicos.map(() => getRandomColor()) : ['#4CAF50']
+                backgroundColor: tecnicos.length ? getUniqueColors(tecnicos.length) : ['#4CAF50']
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'top' }, title: { display: true, text: `Total por Técnico (${ultimoMes})` } }
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: true, text: `Total por Técnico (${ultimoMes})` }
+            }
         }
     });
-    console.log('Gráfico mensal criado');
+    console.log('Gráfico mensal por técnico criado');
 }
 
-// Função para gerar cores predefinidas
-function getRandomColor() {
-    const colors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-        '#FF9F40', '#E7E9ED', '#C9CBCF', '#7E57C2', '#26A69A'
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
-}
-
-// Função para atualizar a tabela de Atendimentos Mensais
 function atualizarTabelaMensais() {
     console.log('Iniciando atualizarTabelaMensais');
     const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
     console.log('Dados para tabela mensal:', dados);
     const tbody = document.getElementById('atendimentosMensaisTable').querySelector('tbody');
     tbody.innerHTML = '';
-    dados.forEach(dado => {
-        const qtdPortas = dado.portas.filter(p => p.codigo || p.status).length;
+    
+    if (dados.length === 0) {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${sanitizeString(dado.data)}</td>
-            <td>${sanitizeString(dado.tecnico) || 'N/A'}</td>
-            <td>${sanitizeString(dado.protocolo)}</td>
-            <td>${qtdPortas}</td>
-            <td><button class="delete-button" onclick="showConfirmPopup('deleteRecordMensais', null, '${sanitizeString(dado.protocolo)}')">Excluir</button></td>
-        `;
+        row.innerHTML = '<td colspan="5" style="text-align: center;">Sem dados para exibir</td>';
         tbody.appendChild(row);
-    });
+    } else {
+        dados.forEach(dado => {
+            const qtdPortas = dado.portas.filter(p => p.codigo || p.status).length;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${sanitizeString(dado.data)}</td>
+                <td>${sanitizeString(dado.tecnico) || 'N/A'}</td>
+                <td>${sanitizeString(dado.protocolo)}</td>
+                <td>${qtdPortas}</td>
+                <td><button class="delete-button" onclick="showConfirmPopup('deleteRecordMensais', null, '${sanitizeString(dado.protocolo)}')">Excluir</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
     console.log('Tabela de atendimentos mensais atualizada');
 }
 </script>
