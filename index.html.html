@@ -822,35 +822,28 @@
         </table>
     </div>
 
-    <!-- Tab Dashboard -->
 <div id="tab13" class="tab-content">
-    <h2>Dashboard de Atendimentos</h2>
-    <div class="form-group">
-        <label for="filtroPeriodo">Filtrar por período:</label>
+    <h2>Dashboard</h2>
+    <div>
+        <label for="filtroPeriodo">Período:</label>
         <select id="filtroPeriodo" onchange="atualizarDashboard()">
             <option value="7">Últimos 7 dias</option>
             <option value="30">Últimos 30 dias</option>
-            <option value="all" selected>Todos</option>
+            <option value="all">Todos</option>
         </select>
     </div>
-    <div class="totals-container">
-        <p>Total Geral de Atendimentos: <span id="totalAtendimentos">0</span></p>
+
+    <p>Total de Atendimentos: <span id="totalAtendimentos">0</span></p>
+    <div style="margin-bottom: 20px; height: 200px;">
+        <div id="graficoAtendimentosPorDia"></div>
     </div>
-    <div style="display: flex; flex-wrap: wrap; gap: 1.25rem; margin-bottom: 1.25rem;">
-        <div style="flex: 1; min-width: 300px;">
-            <h3>Atendimentos por Dia</h3>
-            <canvas id="graficoAtendimentosPorDia"></canvas>
-        </div>
-        <div style="flex: 1; min-width: 300px;">
-            <h3>Atendimentos por Técnico (Diário)</h3>
-            <canvas id="graficoAtendimentosPorTecnico"></canvas>
-        </div>
+
+    <div style="margin-bottom: 20px; height: 200px;">
+        <div id="graficoAtendimentosPorTecnico"></div>
     </div>
-    <div style="display: flex; flex-wrap: wrap; gap: 1.25rem;">
-        <div style="flex: 1; min-width: 300px;">
-            <h3>Total por Técnico (Mensal)</h3>
-            <canvas id="graficoTotalPorTecnicoMensal"></canvas>
-        </div>
+
+    <div style="height: 200px;">
+        <div id="graficoTotalPorTecnicoMensal"></div>
     </div>
 </div>
 
@@ -896,7 +889,7 @@
     </div>
 
     <script>
-/**
+  /**
  * NOTA: Para evitar erros com a Clipboard API, execute esta aplicação em um ambiente seguro ou localhost.
  * A Clipboard API requer um contexto seguro para funcionar corretamente.
  */
@@ -927,20 +920,20 @@ loadScripts().then(() => {
     jsPDFLoaded = false;
 });
 
-// Função para carregar o Chart.js
-function loadChartJs() {
+// Função para carregar o ApexCharts
+function loadApexCharts() {
     return new Promise((resolve, reject) => {
-        const chartJsScript = document.createElement('script');
-        chartJsScript.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.min.js';
-        chartJsScript.onload = () => {
-            console.log('Chart.js carregado com sucesso.');
+        const apexScript = document.createElement('script');
+        apexScript.src = 'https://cdn.jsdelivr.net/npm/apexcharts@3.44.0/dist/apexcharts.min.js';
+        apexScript.onload = () => {
+            console.log('ApexCharts carregado com sucesso.');
             resolve();
         };
-        chartJsScript.onerror = () => {
-            console.error('Erro ao carregar Chart.js');
-            reject(new Error('Erro ao carregar Chart.js'));
+        apexScript.onerror = () => {
+            console.error('Erro ao carregar ApexCharts');
+            reject(new Error('Erro ao carregar ApexCharts'));
         };
-        document.head.appendChild(chartJsScript);
+        document.head.appendChild(apexScript);
     });
 }
 
@@ -971,21 +964,16 @@ function getUniqueColors(count) {
     return colors.slice(0, Math.min(count, colors.length));
 }
 
-// Função para exibir erro nos canvases
+// Função para exibir erro nos elementos do gráfico
 function displayChartError() {
-    const canvases = [
+    const containers = [
         document.getElementById('graficoAtendimentosPorDia'),
         document.getElementById('graficoAtendimentosPorTecnico'),
         document.getElementById('graficoTotalPorTecnicoMensal')
     ];
-    canvases.forEach(canvas => {
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '16px Arial';
-            ctx.fillStyle = '#333';
-            ctx.textAlign = 'center';
-            ctx.fillText('Erro ao carregar gráficos', canvas.width / 2, canvas.height / 2);
+    containers.forEach(container => {
+        if (container) {
+            container.innerHTML = '<p style="text-align: center; color: #333; font: 16px Arial;">Erro ao carregar gráfico</p>';
         }
     });
 }
@@ -1000,12 +988,12 @@ window.onload = async function() {
     atualizarTabelaMensais();
     
     try {
-        await loadChartJs();
+        await loadApexCharts();
         if (document.getElementById('tab13').classList.contains('active')) {
             atualizarDashboard();
         }
     } catch (error) {
-        console.error('Erro ao carregar Chart.js:', error);
+        console.error('Erro ao carregar ApexCharts:', error);
         if (document.getElementById('tab13').classList.contains('active')) {
             displayChartError();
         }
@@ -1042,10 +1030,10 @@ function openTab(tabId, element) {
     element.classList.add('active');
     
     if (tabId === 'tab13') {
-        if (window.Chart) {
+        if (typeof ApexCharts !== 'undefined') {
             atualizarDashboard();
         } else {
-            console.error('Chart.js não carregado. Gráficos não podem ser exibidos.');
+            console.error('ApexCharts não carregado. Gráficos não podem ser exibidos.');
             displayChartError();
         }
     }
@@ -1412,172 +1400,173 @@ function getDadosFiltrados(periodo) {
 
 function atualizarDashboard() {
     console.log('Iniciando atualizarDashboard');
-    
-    if (!window.Chart) {
-        console.error('Chart.js não está definido. Gráficos não podem ser exibidos.');
+
+    if (typeof ApexCharts === 'undefined') {
+        console.error('ApexCharts não está carregado. Verifique a conexão com o CDN.');
         displayChartError();
         return;
     }
-    
+
     const filtroPeriodo = document.getElementById('filtroPeriodo');
     const totalAtendimentos = document.getElementById('totalAtendimentos');
-    const canvasDia = document.getElementById('graficoAtendimentosPorDia');
-    const canvasTecnico = document.getElementById('graficoAtendimentosPorTecnico');
-    const canvasMensal = document.getElementById('graficoTotalPorTecnicoMensal');
-    
-    if (!filtroPeriodo || !totalAtendimentos || !canvasDia || !canvasTecnico || !canvasMensal) {
-        console.error('Elementos do dashboard não encontrados');
+    const containerDia = document.getElementById('graficoAtendimentosPorDia');
+    const containerTecnico = document.getElementById('graficoAtendimentosPorTecnico');
+    const containerMensal = document.getElementById('graficoTotalPorTecnicoMensal');
+
+    if (!filtroPeriodo || !totalAtendimentos || !containerDia || !containerTecnico || !containerMensal) {
+        console.error('Elementos do dashboard não encontrados:', {
+            filtroPeriodo: !!filtroPeriodo,
+            totalAtendimentos: !!totalAtendimentos,
+            containerDia: !!containerDia,
+            containerTecnico: !!containerTecnico,
+            containerMensal: !!containerMensal
+        });
         displayChartError();
         return;
     }
-    
-    const periodo = filtroPeriodo.value;
+
+    const periodo = filtroPeriodo.value || 'all';
     console.log('Período selecionado:', periodo);
-    
-    const dados = getDadosFiltrados(periodo);
-    console.log('Dados filtrados:', dados);
-    
-    totalAtendimentos.textContent = dados.length;
-    
-    const displayNoData = (canvas) => {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#333';
-        ctx.textAlign = 'center';
-        ctx.fillText('Sem dados para exibir', canvas.width / 2, canvas.height / 2);
-    };
-    
-    if (dados.length === 0) {
-        console.log('Sem dados para gráficos');
-        [canvasDia, canvasTecnico, canvasMensal].forEach(displayNoData);
+
+    let dados;
+    try {
+        dados = getDadosFiltrados(periodo);
+        console.log('Dados filtrados:', dados);
+    } catch (error) {
+        console.error('Erro ao obter dados filtrados:', error);
+        displayChartError();
         return;
     }
-    
+
+    totalAtendimentos.textContent = dados.length;
+
+    const displayNoData = (container) => {
+        container.innerHTML = '<p style="text-align: center; color: #333; font: 16px Arial;">Sem dados para exibir</p>';
+    };
+
+    if (!dados || dados.length === 0) {
+        console.log('Nenhum dado disponível para renderizar gráficos');
+        [containerDia, containerTecnico, containerMensal].forEach(displayNoData);
+        return;
+    }
+
     // Gráfico: Atendimentos por Dia
-    const atendimentosPorDia = dados.reduce((acc, d) => {
-        if (d.data) {
-            acc[d.data] = (acc[d.data] || 0) + 1;
-        }
-        return acc;
-    }, {});
-    
-    const datas = Object.keys(atendimentosPorDia).sort((a, b) => {
-        const dateA = parseDateBR(a);
-        const dateB = parseDateBR(b);
-        return dateA - dateB;
-    });
-    
-    if (window.chartAtendimentosPorDia) {
-        window.chartAtendimentosPorDia.destroy();
-    }
-    
-    window.chartAtendimentosPorDia = new Chart(canvasDia.getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: datas.length ? datas : ['Sem data'],
-            datasets: [{
-                label: 'Atendimentos',
-                data: datas.length ? datas.map(d => atendimentosPorDia[d] || 0) : [0],
-                backgroundColor: '#4CAF50',
-                borderColor: '#388E3C',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } },
-                x: { ticks: { maxRotation: 45, minRotation: 45 } }
+    try {
+        const atendimentosPorDia = dados.reduce((acc, d) => {
+            if (d.data) acc[d.data] = (acc[d.data] || 0) + 1;
+            return acc;
+        }, {});
+
+        const datas = Object.keys(atendimentosPorDia).sort((a, b) => parseDateBR(a) - parseDateBR(b));
+        console.log('Datas ordenadas:', datas);
+
+        containerDia.innerHTML = ''; // Limpar conteúdo anterior
+        new ApexCharts(containerDia, {
+            chart: {
+                type: 'bar',
+                height: 200,
+                toolbar: { show: false }
             },
-            plugins: {
-                legend: { display: true, position: 'top' },
-                title: { display: true, text: 'Atendimentos por Dia' }
-            }
-        }
-    });
-    console.log('Gráfico de atendimentos por dia criado');
-    
+            series: [{
+                name: 'Atendimentos',
+                data: datas.length ? datas.map(d => atendimentosPorDia[d] || 0) : [0]
+            }],
+            xaxis: {
+                categories: datas.length ? datas : ['Sem data'],
+                labels: { rotate: -45 }
+            },
+            yaxis: {
+                min: 0,
+                forceNiceScale: true,
+                labels: { formatter: val => Math.floor(val) }
+            },
+            colors: ['#4CAF50'],
+            title: { text: 'Atendimentos por Dia', align: 'center' }
+        }).render();
+        console.log('Gráfico de atendimentos por dia criado');
+    } catch (error) {
+        console.error('Erro ao criar gráfico de atendimentos por dia:', error);
+        displayNoData(containerDia);
+    }
+
     // Gráfico: Atendimentos por Técnico (Diário)
-    const tecnicos = [...new Set(dados.map(d => d.tecnico).filter(t => t))];
-    console.log('Técnicos encontrados:', tecnicos);
-    
-    const dadosPorTecnico = tecnicos.map((tecnico, index) => ({
-        label: tecnico,
-        data: datas.length ? datas.map(data => dados.filter(d => d.data === data && d.tecnico === tecnico).length) : [0],
-        backgroundColor: getUniqueColors(tecnicos.length)[index]
-    }));
-    
-    if (window.chartAtendimentosPorTecnico) {
-        window.chartAtendimentosPorTecnico.destroy();
-    }
-    
-    window.chartAtendimentosPorTecnico = new Chart(canvasTecnico.getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: datas.length ? datas : ['Sem data'],
-            datasets: dadosPorTecnico.length ? dadosPorTecnico : [{ label: 'Nenhum', data: [0], backgroundColor: '#4CAF50' }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, stacked: true, ticks: { stepSize: 1 } },
-                x: { stacked: true, ticks: { maxRotation: 45, minRotation: 45 } }
+    try {
+        const tecnicos = [...new Set(dados.map(d => d.tecnico).filter(t => t))];
+        console.log('Técnicos encontrados:', tecnicos);
+
+        const seriesData = tecnicos.map(tecnico => ({
+            name: tecnico,
+            data: datas.length ? datas.map(data => dados.filter(d => d.data === data && d.tecnico === tecnico).length) : [0]
+        }));
+
+        containerTecnico.innerHTML = '';
+        new ApexCharts(containerTecnico, {
+            chart: {
+                type: 'bar',
+            height: 200,
+            stacked: true,
+            toolbar: { show: false }
             },
-            plugins: {
-                legend: { position: 'top' },
-                title: { display: true, text: 'Atendimentos por Técnico (Diário)' }
-            }
-        }
-    });
-    console.log('Gráfico de atendimentos por técnico criado');
-    
-    // Gráfico: Total por Técnico (Mensal)
-    const porMes = dados.reduce((acc, d) => {
-        if (d.data) {
-            const [, mes, ano] = d.data.split('/').map(Number);
-            const key = `${mes.toString().padStart(2, '0')}/${ano}`;
-            acc[key] = acc[key] || {};
-            acc[key][d.tecnico] = (acc[key][d.tecnico] || 0) + 1;
-        }
-        return acc;
-    }, {});
-    
-    const meses = Object.keys(porMes).sort((a, b) => {
-        const [ma, ya] = a.split('/').map(Number);
-        const [mb, yb] = b.split('/').map(Number);
-        return new Date(yb, mb - 1) - new Date(ya, ma - 1);
-    });
-    
-    const ultimoMes = meses[0] || 'Sem mês';
-    console.log('Último mês:', ultimoMes, 'Dados mensal:', porMes);
-    
-    if (window.chartTotalPorTecnicoMensal) {
-        window.chartTotalPorTecnicoMensal.destroy();
+            series: seriesData.length ? seriesData : [{ name: 'Nenhum', data: [0] }],
+            xaxis: {
+                categories: datas.length ? datas : ['Sem data'],
+                labels: { rotate: -45 }
+            },
+            yaxis: {
+                min: 0,
+                forceNiceScale: true,
+                labels: { formatter: val => Math.floor(val) }
+            },
+            colors: tecnicos.length ? getUniqueColors(tecnicos.length) : ['#4CAF50'],
+            title: { text: 'Atendimentos por Técnico (Diário)', align: 'center' },
+            legend: { position: 'top' }
+        }).render();
+        console.log('Gráfico de atendimentos por técnico criado');
+    } catch (error) {
+        console.error('Erro ao criar gráfico de atendimentos por técnico:', error);
+        displayNoData(containerTecnico);
     }
-    
-    window.chartTotalPorTecnicoMensal = new Chart(canvasMensal.getContext('2d'), {
-        type: 'pie',
-        data: {
-            labels: tecnicos.length ? tecnicos : ['Nenhum técnico'],
-            datasets: [{
-                label: 'Atendimentos Mensais',
-                data: tecnicos.length && porMes[ultimoMes] ? tecnicos.map(t => porMes[ultimoMes][t] || 0) : [0],
-                backgroundColor: tecnicos.length ? getUniqueColors(tecnicos.length) : ['#4CAF50']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' },
-                title: { display: true, text: `Total por Técnico (${ultimoMes})` }
+
+    // Gráfico: Total por Técnico (Mensal)
+    try {
+        const porMes = dados.reduce((acc, d) => {
+            if (d.data) {
+                const [, mes, ano] = d.data.split('/').map(Number);
+                const key = `${mes.toString().padStart(2, '0')}/${ano}`;
+                acc[key] = acc[key] || {};
+                acc[key][d.tecnico] = (acc[key][d.tecnico] || 0) + 1;
             }
-        }
-    });
-    console.log('Gráfico mensal por técnico criado');
+            return acc;
+        }, {});
+
+        const meses = Object.keys(porMes).sort((a, b) => {
+            const [ma, ya] = a.split('/').map(Number);
+            const [mb, yb] = b.split('/').map(Number);
+            return new Date(yb, mb - 1) - new Date(ya, ma - 1);
+        });
+
+        const ultimoMes = meses[0] || 'Sem mês';
+        console.log('Último mês:', ultimoMes, 'Dados mensal:', porMes);
+
+        const dataMes = tecnicos.length && porMes[ultimoMes] ? tecnicos.map(t => porMes[ultimoMes][t] || 0) : [0];
+
+        containerMensal.innerHTML = '';
+        new ApexCharts(containerMensal, {
+            chart: {
+                type: 'pie',
+                height: 200,
+            },
+            series: dataMes,
+            labels: tecnicos.length ? tecnicos : ['Nenhum técnico'],
+            colors: tecnicos.length ? getUniqueColors(tecnicos.length) : ['#4CAF50'],
+            title: { text: `Total por Técnico (${ultimoMes})`, align: 'center' },
+            legend: { position: 'top' }
+        }).render();
+        console.log('Gráfico mensal por técnico criado');
+    } catch (error) {
+        console.error('Erro ao criar gráfico mensal por técnico:', error);
+        displayNoData(containerMensal);
+    }
 }
 
 function atualizarTabelaMensais() {
