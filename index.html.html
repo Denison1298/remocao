@@ -1646,15 +1646,43 @@ function atualizarDashboard() {
 
     // Gráfico: Atendimentos por Técnico (Diário)
     try {
-        const tecnicos = [...new Set(dados.map(d => d && d.tecnico).filter(t => t && typeof t === 'string' && t.trim()))];
+        // Obter lista única de técnicos válidos
+        const tecnicos = [...new Set(dados
+            .filter(d => d && d.tecnico && typeof d.tecnico === 'string' && d.tecnico.trim())
+            .map(d => d.tecnico.trim()))];
         console.log('Técnicos encontrados:', tecnicos);
 
-        const seriesData = tecnicos.map(t => ({
-            name: t,
-            data: datas.length ? datas.map(data => dados.filter(d => d && d.data === data && d.tecnico === t).length) : [0]
-        }));
+        // Obter todas as datas válidas
+        const datas = [...new Set(dados
+            .filter(d => d && d.data && typeof d.data === 'string' && d.data.match(/^\d{2}\/\d{2}\/\d{4}$/))
+            .map(d => d.data))]
+            .sort((a, b) => {
+                const dateA = parseDateBR(a) || new Date(0);
+                const dateB = parseDateBR(b) || new Date(0);
+                return dateA - dateB;
+            });
+        console.log('Datas para gráfico por técnico:', datas);
 
-        console.log('Séries para atendimentos por técnico:', seriesData);
+        // Criar séries de dados: uma série por técnico
+        const seriesData = tecnicos.map(tecnico => {
+            const data = datas.map(data => {
+                const count = dados.filter(d => 
+                    d && d.data === data && 
+                    d.tecnico && d.tecnico.trim() === tecnico
+                ).length;
+                return count;
+            });
+            return { name: tecnico, data };
+        });
+
+        console.log('Séries para atendimentos por técnico:', JSON.stringify(seriesData, null, 2));
+
+        // Verificar se há dados válidos
+        if (seriesData.length === 0 || datas.length === 0) {
+            console.log('Nenhum dado válido para gráfico por técnico');
+            displayNoData(containerTecnico);
+            return;
+        }
 
         containerTecnico.innerHTML = '';
         new ApexCharts(containerTecnico, {
@@ -1664,9 +1692,9 @@ function atualizarDashboard() {
                 stacked: true,
                 toolbar: { show: false }
             },
-            series: seriesData.length ? seriesData : [{ name: 'Nenhum', data: [0] }],
+            series: seriesData,
             xaxis: {
-                categories: datas.length ? datas : ['Sem data'],
+                categories: datas,
                 labels: { rotate: -45 }
             },
             yaxis: {
@@ -1694,7 +1722,7 @@ function atualizarDashboard() {
                     const key = `${mes.toString().padStart(2, '0')}/${ano}`;
                     acc[key] = acc[key] || {};
                     if (d.tecnico && typeof d.tecnico === 'string' && d.tecnico.trim()) {
-                        acc[key][d.tecnico] = (acc[key][d.tecnico] || 0) + 1;
+                        acc[key][d.tecnico.trim()] = (acc[key][d.tecnico.trim()] || 0) + 1;
                     }
                 }
             }
@@ -1710,7 +1738,9 @@ function atualizarDashboard() {
         const ultimoMes = meses[0] || 'Sem mês';
         console.log('Último mês:', ultimoMes, 'Dados mensal:', porMes);
 
-        const tecnicos = [...new Set(dados.map(d => d && d.tecnico).filter(t => t && typeof t === 'string' && t.trim()))];
+        const tecnicos = [...new Set(dados
+            .filter(d => d && d.tecnico && typeof d.tecnico === 'string' && d.tecnico.trim())
+            .map(d => d.tecnico.trim()))];
         const dataMes = tecnicos.length && porMes[ultimoMes] ? tecnicos.map(t => porMes[ultimoMes][t] || 0) : [0];
         console.log('Dados para gráfico mensal:', dataMes);
 
