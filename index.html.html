@@ -396,16 +396,16 @@
     <div class="tab" onclick="openTab('tab11', this)">R4</div>
     <div class="tab" onclick="openTab('tab12', this)">R5</div>
     <div class="tab" onclick="openTab('tab9', this)">Dados Remoção de Portas</div>
-    <div class="tab" onclick="openTab('tab13', this)">Dashboard</div>
     <div class="tab" onclick="openTab('tab14', this)">Atendimentos Mensais</div>
-    <div class="tab" onclick="window.open('https://convertemac.wuaze.com', '_blank')">Conversor de mac</div>        
+    <div class="tab" onclick="openTab('tab13', this)">Dashboard</div>
+    <div class="tab" onclick="window.open('https://convertemac.wuaze.com', '_blank')">Atendimentos Mensais</div>
 </div>
 
     <!-- Tab Script Conversa -->
     <div id="tab1" class="tab-content active">
         <div class="content">
             <label>Saudação simples</label>
-            <textarea id="text1">Bom dia, Sou o atendente Denison, vou ser responsável pelo seu atendimento. ✅</textarea>
+            <textarea id="text1">Olá, tudo bem? Meu nome é Pâmela Santos e serei responsável pelo seu atendimento.</textarea>
             <button class="copy-button" onclick="copyToClipboard('text1')">Copiar</button>
         </div>
         <div class="content">
@@ -430,7 +430,7 @@
     <h3>Configurar Nomes</h3>
     <div style="margin-bottom: 10px;">
         <label for="nomeConferente">Nome do Conferente:</label><br>
-        <input type="text" id="nomeConferente" style="width: 200px; padding: 5px; margin: 5px 0;" placeholder="Ex.: Denison Santos">
+        <input type="text" id="nomeConferente" style="width: 200px; padding: 5px; margin: 5px 0;" placeholder="Ex.: Pâmela Santos">
     </div>
     <div style="margin-bottom: 10px;">
         <label for="nomeAtendente">Nome do Atendente (Saudação):</label><br>
@@ -819,32 +819,33 @@
 </div>
 
     <!-- Tab Dados Remoção de Portas -->
-    <div id="tab9" class="tab-content">
-        <h2>Dados Remoção de Portas</h2>
-        <div class="totals-container">
-            <p>Total Geral: <span id="totalGeralRemocao">0</span></p>
-        </div>
-        <div class="action-buttons">
-            <button class="delete-button" onclick="showConfirmPopup('clearAll')">Limpar Todos os Dados</button>
-            <button class="save-button" onclick="gerarRelatorioPDFRemocao()">Gerar Relatório PDF</button>
-        </div>
-        <table class="dados-table" id="dadosTableRemocao">
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Tipo</th>
-                    <th>Protocolo</th>
-                    <th>Técnico</th>
-                    <th>CTO</th>
-                    <th>Porta Removida</th>
-                    <th>Observação</th>
-                    <th>Portas</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+<div id="tab9" class="tab-content">
+    <h2>Dados Remoção de Portas</h2>
+    <div class="totals-container">
+        <p>Total Geral: <span id="totalGeralRemocao">0</span></p>
     </div>
+    <div class="action-buttons">
+        <button class="delete-button" onclick="showConfirmPopup('clearAll')">Limpar Todos os Dados</button>
+        <button class="save-button" onclick="gerarRelatorioPDFRemocao()">Gerar Relatório PDF</button>
+    </div>
+    <table class="dados-table" id="dadosTableRemocao">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Protocolo</th>
+                <th>Técnico</th>
+                <th>Código</th> <!-- Nova coluna -->
+                <th>CTO</th>
+                <th>Porta Removida</th>
+                <th>Observação</th>
+                <th>Portas</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
 
 <div id="tab13" class="tab-content">
     <h2>Dashboard</h2>
@@ -1010,7 +1011,7 @@ window.onload = async function() {
     }
     
     // Inicializar saudação com nome do atendente
-    const nomeAtendente = localStorage.getItem('nomeAtendente') || 'Denison';
+    const nomeAtendente = localStorage.getItem('nomeAtendente') || 'Pâmela Santos';
     const saudacaoOutput = document.getElementById('text1');
     if (saudacaoOutput) {
         saudacaoOutput.value = `Olá, tudo bem? Meu nome é ${nomeAtendente} e serei responsável pelo seu atendimento.`;
@@ -1094,7 +1095,7 @@ function copyToClipboard(id) {
     }
     
     // Obter nome do atendente do localStorage
-    const nomeAtendente = localStorage.getItem('nomeAtendente') || 'Denison';
+    const nomeAtendente = localStorage.getItem('nomeAtendente') || 'Pâmela Santos';
     
     // Gerar saudação com o nome do atendente para text1
     let text = sanitizeString(element.value);
@@ -1203,7 +1204,7 @@ function copiarDados(formId) {
     const nomeConferente = localStorage.getItem('nomeConferente') || 'Denison Santos';
     
     const header = `***** SEGUE A VALIDAÇÃO *****\nConferente: ${nomeConferente}\n\n`;
-    const text = `${header}Protocolo: ${protocolo || ''}\nTécnico: ${tecnico || ''}\nCódigo: ${codigo || ''}\nCliente: ${cliente || ''}\nCTO: ${CTO || ''}\nPorta Removida: ${portaRemovida || ''}\n\nObservação: ${observacao || ''}\n\nPortas:\n\n${portasText || ''}`;
+    const text = `${header}Protocolo: ${protocolo || ''}\nTécnico: ${tecnico || ''}\nCódigo do Cliente: ${codigo || ''}\nCliente: ${cliente || ''}\nCTO: ${CTO || ''}\nPorta Removida: ${portaRemovida || ''}\n\nObservação: ${observacao || ''}\n\nPortas:\n\n${portasText || ''}`;
     
     if (!text.trim()) {
         const popup = document.getElementById('noDataToCopyPopup');
@@ -1372,44 +1373,60 @@ function salvarDados(formId) {
 }
 
 function atualizarTabelaRemocao() {
-    try {
-        const dados = JSON.parse(localStorage.getItem('dadosRemocao') || '[]');
-        const table = document.getElementById('dadosTableRemocao');
-        if (!table) {
-            console.error('Tabela com ID "dadosTableRemocao" não encontrada');
-            return;
-        }
-        const tbody = table.querySelector('tbody');
-        if (!tbody) {
-            console.error('Elemento tbody não encontrado em dadosTableRemocao');
-            return;
-        }
-        tbody.innerHTML = '';
-        dados.forEach(dado => {
-            if (!dado || typeof dado !== 'object') return;
-            const portasText = Array.isArray(dado.portas) ? dado.portas.map(p => `${p.porta}: ${sanitizeString(p.codigo) || 'N/A'} - ${sanitizeString(p.status) || 'Nenhum'}`).join('<br>') : 'Nenhuma';
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${sanitizeString(dado.data) || 'N/A'}</td>
-                <td>${sanitizeString(dado.tipo) || 'N/A'}</td>
-                <td>${sanitizeString(dado.protocolo) || 'N/A'}</td>
-                <td>${sanitizeString(dado.tecnico) || 'N/A'}</td>
-                <td>${sanitizeString(dado.CTO) || 'N/A'}</td>
-                <td>${sanitizeString(dado.portaRemovida) || 'N/A'}</td>
-                <td>${sanitizeString(dado.observacao) || 'N/A'}</td>
-                <td>${portasText}</td>
-                <td><button class="delete-button" onclick="showConfirmPopup('deleteRecord', null, '${sanitizeString(dado.protocolo) || ''}')">Excluir</button></td>
-            `;
-            tbody.appendChild(row);
-        });
-        const totalGeralRemocao = document.getElementById('totalGeralRemocao');
-        if (totalGeralRemocao) {
-            totalGeralRemocao.textContent = dados.length;
-        }
-        console.log('Tabela de remoção atualizada');
-    } catch (error) {
-        console.error('Erro ao atualizar tabela de remoção:', error);
+    const tbody = document.querySelector('#dadosTableRemocao tbody');
+    if (!tbody) {
+        console.error('Tabela de remoção não encontrada');
+        return;
     }
+    
+    let dados = [];
+    try {
+        const storedData = localStorage.getItem('dadosRemocao');
+        dados = storedData ? JSON.parse(storedData) : [];
+        if (!Array.isArray(dados)) throw new Error('Dados inválidos');
+    } catch (error) {
+        console.error('Erro ao carregar dados de remoção:', error);
+        dados = [];
+    }
+    
+    const totalGeral = document.getElementById('totalGeralRemocao');
+    if (totalGeral) {
+        totalGeral.textContent = dados.length;
+    }
+    
+    tbody.innerHTML = '';
+    
+    if (dados.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="10" style="text-align: center;">Nenhum dado disponível</td>';
+        tbody.appendChild(tr);
+        return;
+    }
+    
+    dados.forEach((item, index) => {
+        if (!item) return;
+        
+        const tr = document.createElement('tr');
+        const portasText = Array.isArray(item.portas) 
+            ? item.portas.map(p => `P${p.porta}: ${p.codigo || ''} - ${p.status || ''}`).join('<br>')
+            : '';
+        
+        tr.innerHTML = `
+            <td>${sanitizeString(item.data) || ''}</td>
+            <td>${sanitizeString(item.tipo) || ''}</td>
+            <td>${sanitizeString(item.protocolo) || ''}</td>
+            <td>${sanitizeString(item.tecnico) || ''}</td>
+            <td>${sanitizeString(item.codigo) || ''}</td> <!-- Novo campo -->
+            <td>${sanitizeString(item.CTO) || ''}</td>
+            <td>${sanitizeString(item.portaRemovida) || ''}</td>
+            <td>${sanitizeString(item.observacao) || ''}</td>
+            <td>${portasText}</td>
+            <td>
+                <button class="delete-button" onclick="showConfirmPopup('delete', ${index})">Excluir</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 function excluirRegistroRemocao(protocolo) {
@@ -1472,24 +1489,26 @@ function gerarRelatorioPDFRemocao() {
                 sanitizeString(d.tipo) || 'N/A',
                 sanitizeString(d.protocolo) || 'N/A',
                 sanitizeString(d.tecnico) || 'N/A',
+                sanitizeString(d.codigo) || 'N/A', // Nova coluna
                 sanitizeString(d.CTO) || 'N/A',
                 sanitizeString(d.portaRemovida) || 'N/A',
                 sanitizeString(d.observacao) || 'N/A',
                 Array.isArray(d.portas) ? d.portas.map(p => `${p.porta}: ${sanitizeString(p.codigo) || 'N/A'} - ${sanitizeString(p.status) || 'Nenhum'}`).join('\n') : 'Nenhuma'
             ]);
             doc.autoTable({
-                head: [['Tipo', 'Protocolo', 'Técnico', 'CTO', 'Porta Removida', 'Observação', 'Portas']],
+                head: [['Tipo', 'Protocolo', 'Técnico', 'Código', 'CTO', 'Porta Removida', 'Observação', 'Portas']],
                 body: tableData,
                 startY: startY,
                 styles: { fontSize: 8, cellPadding: 2 },
                 columnStyles: {
-                    0: { cellWidth: 20 },
-                    1: { cellWidth: 30 },
-                    2: { cellWidth: 40 },
-                    3: { cellWidth: 30 },
-                    4: { cellWidth: 30 },
-                    5: { cellWidth: 60 },
-                    6: { cellWidth: 100 }
+                    0: { cellWidth: 20 }, // Tipo
+                    1: { cellWidth: 30 }, // Protocolo
+                    2: { cellWidth: 40 }, // Técnico
+                    3: { cellWidth: 30 }, // Código (novo)
+                    4: { cellWidth: 30 }, // CTO
+                    5: { cellWidth: 30 }, // Porta Removida
+                    6: { cellWidth: 60 }, // Observação
+                    7: { cellWidth: 80 }  // Portas (ajustado para caber)
                 }
             });
             startY = doc.autoTable.previous.finalY + 10;
@@ -1809,8 +1828,8 @@ function atualizarDashboard() {
 
 // Função para abrir o popup de configuração de nomes
 function showConfigNomesPopup() {
-    const nomeConferente = localStorage.getItem('nomeConferente') || 'Denison Santos';
-    const nomeAtendente = localStorage.getItem('nomeAtendente') || 'Denison';
+    const nomeConferente = localStorage.getItem('nomeConferente') || 'Pâmela Santos';
+    const nomeAtendente = localStorage.getItem('nomeAtendente') || 'Pâmela Santos';
     
     const inputConferente = document.getElementById('nomeConferente');
     const inputAtendente = document.getElementById('nomeAtendente');
@@ -1829,8 +1848,8 @@ function saveNomesConfig() {
     const inputConferente = document.getElementById('nomeConferente');
     const inputAtendente = document.getElementById('nomeAtendente');
     
-    const nomeConferente = sanitizeString(inputConferente ? inputConferente.value : '') || 'Denison Santos';
-    const nomeAtendente = sanitizeString(inputAtendente ? inputAtendente.value : '') || 'Denison';
+    const nomeConferente = sanitizeString(inputConferente ? inputConferente.value : '') || 'Pâmela Santos';
+    const nomeAtendente = sanitizeString(inputAtendente ? inputAtendente.value : '') || 'Pâmela Santos';
     
     localStorage.setItem('nomeConferente', nomeConferente);
     localStorage.setItem('nomeAtendente', nomeAtendente);
