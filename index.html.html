@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -47,9 +8,52 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Incluindo a biblioteca SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
+    <!-- Script para manipulação de arquivos XLSX -->
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+
+                    // Convert sheet to JSON to filter blank rows
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                    // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                      row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    // Fallback
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                      headerRowIndex = 0;
+                    }
+
+                    // Convert filtered JSON back to CSV
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+    </script>
+
     <!-- Cabeçalho -->
     <div class="header">
         <div class="counter-container">
@@ -64,17 +68,17 @@
 
     <!-- Container de Abas -->
     <div class="tab-container">
-    <div class="tab active" onclick="openTab('tab1', this)">Script Conversa</div>
-    <div class="tab" onclick="openTab('tab2', this)">R1</div>
-    <div class="tab" onclick="openTab('tab8', this)">R2</div>
-    <div class="tab" onclick="openTab('tab10', this)">R3</div>
-    <div class="tab" onclick="openTab('tab11', this)">R4</div>
-    <div class="tab" onclick="openTab('tab12', this)">R5</div>
-    <div class="tab" onclick="openTab('tab9', this)">Dados Remoção de Portas</div>
-    <div class="tab" onclick="openTab('tab14', this)">Atendimentos Mensais</div>
-    <div class="tab" onclick="openTab('tab13', this)">Dashboard</div>
-    <div class="tab" onclick="window.open('https://convertemac.wuaze.com', '_blank')">Conversor de mac</div>
-</div>
+        <div class="tab active" onclick="openTab('tab1', this)">Script Conversa</div>
+        <div class="tab" onclick="openTab('tab2', this)">R1</div>
+        <div class="tab" onclick="openTab('tab8', this)">R2</div>
+        <div class="tab" onclick="openTab('tab10', this)">R3</div>
+        <div class="tab" onclick="openTab('tab11', this)">R4</div>
+        <div class="tab" onclick="openTab('tab12', this)">R5</div>
+        <div class="tab" onclick="openTab('tab9', this)">Dados Remoção de Portas</div>
+        <div class="tab" onclick="openTab('tab14', this)">Atendimentos Mensais</div>
+        <div class="tab" onclick="openTab('tab13', this)">Dashboard</div>
+        <div class="tab" onclick="window.open('https://convertemac.wuaze.com', '_blank')">Conversor de mac</div>
+    </div>
 
     <!-- Tab Script Conversa -->
     <div id="tab1" class="tab-content active">
@@ -93,30 +97,29 @@
             <textarea id="text3"></textarea>
             <button class="copy-button" onclick="copyToClipboard('text3')">Copiar</button>
         </div>
-
-<!-- Botão para configurar nomes -->
-    <button onclick="showConfigNomesPopup()" style="margin: 10px; padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-        Configurar Nomes
-    </button>
-</div>
-
-<!-- Popup para configurar nomes -->
-<div id="configNomesPopup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000;">
-    <h3>Configurar Nomes</h3>
-    <div style="margin-bottom: 10px;">
-        <label for="nomeConferente">Nome do Conferente:</label><br>
-        <input type="text" id="nomeConferente" style="width: 200px; padding: 5px; margin: 5px 0;" placeholder="Ex.: Pâmela Santos">
+        <!-- Botão para configurar nomes -->
+        <button onclick="showConfigNomesPopup()" style="margin: 10px; padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Configurar Nomes
+        </button>
     </div>
-    <div style="margin-bottom: 10px;">
-        <label for="nomeAtendente">Nome do Atendente (Saudação):</label><br>
-        <input type="text" id="nomeAtendente" style="width: 200px; padding: 5px; margin: 5px 0;" placeholder="Ex.: João Silva">
-    </div>
-    <button onclick="saveNomesConfig()" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px;">Salvar</button>
-    <button onclick="closeConfigNomesPopup()" style="padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; margin-left: 10px;">Cancelar</button>
-</div>
 
-<!-- Overlay para escurecer o fundo -->
-<div id="configNomesOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
+    <!-- Popup para configurar nomes -->
+    <div id="configNomesPopup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000;">
+        <h3>Configurar Nomes</h3>
+        <div style="margin-bottom: 10px;">
+            <label for="nomeConferente">Nome do Conferente:</label><br>
+            <input type="text" id="nomeConferente" style="width: 200px; padding: 5px; margin: 5px 0;" placeholder="Ex.: Pâmela Santos">
+        </div>
+        <div style="margin-bottom: 10px;">
+            <label for="nomeAtendente">Nome do Atendente (Saudação):</label><br>
+            <input type="text" id="nomeAtendente" style="width: 200px; padding: 5px; margin: 5px 0;" placeholder="Ex.: João Silva">
+        </div>
+        <button onclick="saveNomesConfig()" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px;">Salvar</button>
+        <button onclick="closeConfigNomesPopup()" style="padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; margin-left: 10px;">Cancelar</button>
+    </div>
+
+    <!-- Overlay para escurecer o fundo -->
+    <div id="configNomesOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
 
     <!-- Tab R1 -->
     <div id="tab2" class="tab-content">
@@ -344,227 +347,225 @@
     </div>
 
     <!-- Tab R4 -->
-<div id="tab11" class="tab-content">
-    <h2>Remoção de Portas 4</h2>
-    <form id="remo4">
-        <div class="form-group">
-            <label for="protocolo4">Protocolo:</label>
-            <input type="text" id="protocolo4">
+    <div id="tab11" class="tab-content">
+        <h2>Remoção de Portas 4</h2>
+        <form id="remo4">
+            <div class="form-group">
+                <label for="protocolo4">Protocolo:</label>
+                <input type="text" id="protocolo4">
+            </div>
+            <div class="form-group">
+                <label for="tecnico4">Técnico:</label>
+                <select id="tecnico4">
+                    <option value="" disabled selected>Selecione um técnico</option>
+                    <option value="Anderson Assis">Anderson Assis</option>
+                    <option value="Gilmar Brito">Gilmar Brito</option>
+                    <option value="Lucínio Teixeira">Lucínio Teixeira</option>
+                    <option value="Paulo Cesar">Paulo Cesar</option>
+                    <option value="Vinícius Kober">Vinícius Kober</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="codigo4">Código:</label>
+                <input type="text" id="codigo4">
+            </div>
+            <div class="form-group">
+                <label for="cliente4">Cliente:</label>
+                <input type="text" id="cliente4">
+            </div>
+            <div class="form-group">
+                <label for="CTO4">CTO:</label>
+                <input type="text" id="CTO4">
+            </div>
+            <div class="form-group">
+                <label for="portaremovida4">Porta Removida:</label>
+                <input type="text" id="portaremovida4">
+            </div>
+            <div class="form-group">
+                <label for="observacao4">Observação:</label>
+                <select id="observacao4">
+                    <option value="" selected>Selecione uma observação</option>
+                    <option value="Identificado código do cliente na CTO, não foi efetuada a remoção devido o mesmo estar com status sem alimentação, Efetuada a padronização da CTO">Sem Alimentação</option>
+                    <option value="Identificado código do cliente na CTO, Efetuada a remoção devido o status estar DESCONECTADO.">Desconectado</option>
+                    <option value="Não identificado o código do cliente , porem foi efetuada a padronização da CTO.">Não Identificado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Portas:</label>
+                <table class="portas-table">
+                    <tbody>
+                        <tr><td><div class="porta-row"><label>P1:</label><input type="text" id="porta1-codigo4"><select id="porta1-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P2:</label><input type="text" id="porta2-codigo4"><select id="porta2-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P3:</label><input type="text" id="porta3-codigo4"><select id="porta3-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P4:</label><input type="text" id="porta4-codigo4"><select id="porta4-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P5:</label><input type="text" id="porta5-codigo4"><select id="porta5-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P6:</label><input type="text" id="porta6-codigo4"><select id="porta6-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P7:</label><input type="text" id="porta7-codigo4"><select id="porta7-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P8:</label><input type="text" id="porta8-codigo4"><select id="porta8-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P9:</label><input type="text" id="porta9-codigo4"><select id="porta9-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P10:</label><input type="text" id="porta10-codigo4"><select id="porta10-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P11:</label><input type="text" id="porta11-codigo4"><select id="porta11-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P12:</label><input type="text" id="porta12-codigo4"><select id="porta12-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P13:</label><input type="text" id="porta13-codigo4"><select id="porta13-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P14:</label><input type="text" id="porta14-codigo4"><select id="porta14-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P15:</label><input type="text" id="porta15-codigo4"><select id="porta15-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P16:</label><input type="text" id="porta16-codigo4"><select id="porta16-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="button-container">
+                <button type="button" class="copy-button" onclick="copiarDados('remo4')">Copiar Dados</button>
+                <button type="button" class="delete-button" onclick="showConfirmPopup('formClear', 'remo4')">Apagar Dados</button>
+                <button type="button" class="save-button" onclick="salvarDados('remo4')">Salvar Dados</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tab R5 -->
+    <div id="tab12" class="tab-content">
+        <h2>Remoção de Portas 5</h2>
+        <form id="remo5">
+            <div class="form-group">
+                <label for="protocolo5">Protocolo:</label>
+                <input type="text" id="protocolo5">
+            </div>
+            <div class="form-group">
+                <label for="tecnico5">Técnico:</label>
+                <select id="tecnico5">
+                    <option value="" disabled selected>Selecione um técnico</option>
+                    <option value="Anderson Assis">Anderson Assis</option>
+                    <option value="Gilmar Brito">Gilmar Brito</option>
+                    <option value="Lucínio Teixeira">Lucínio Teixeira</option>
+                    <option value="Paulo Cesar">Paulo Cesar</option>
+                    <option value="Vinícius Kober">Vinícius Kober</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="codigo5">Código:</label>
+                <input type="text" id="codigo5">
+            </div>
+            <div class="form-group">
+                <label for="cliente5">Cliente:</label>
+                <input type="text" id="cliente5">
+            </div>
+            <div class="form-group">
+                <label for="CTO5">CTO:</label>
+                <input type="text" id="CTO5">
+            </div>
+            <div class="form-group">
+                <label for="portaremovida5">Porta Removida:</label>
+                <input type="text" id="portaremovida5">
+            </div>
+            <div class="form-group">
+                <label for="observacao5">Observação:</label>
+                <select id="observacao5">
+                    <option value="" selected>Selecione uma observação</option>
+                    <option value="Identificado código do cliente na CTO, não foi efetuada a remoção devido o mesmo estar com status sem alimentação, Efetuada a padronização da CTO">Sem Alimentação</option>
+                    <option value="Identificado código do cliente na CTO, Efetuada a remoção devido o status estar DESCONECTADO.">Desconectado</option>
+                    <option value="Não identificado o código do cliente , porem foi efetuada a padronização da CTO.">Não Identificado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Portas:</label>
+                <table class="portas-table">
+                    <tbody>
+                        <tr><td><div class="porta-row"><label>P1:</label><input type="text" id="porta1-codigo5"><select id="porta1-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P2:</label><input type="text" id="porta2-codigo5"><select id="porta2-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P3:</label><input type="text" id="porta3-codigo5"><select id="porta3-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P4:</label><input type="text" id="porta4-codigo5"><select id="porta4-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P5:</label><input type="text" id="porta5-codigo5"><select id="porta5-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P6:</label><input type="text" id="porta6-codigo5"><select id="porta6-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P7:</label><input type="text" id="porta7-codigo5"><select id="porta7-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P8:</label><input type="text" id="porta8-codigo5"><select id="porta8-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P9:</label><input type="text" id="porta9-codigo5"><select id="porta9-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P10:</label><input type="text" id="porta10-codigo5"><select id="porta10-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P11:</label><input type="text" id="porta11-codigo5"><select id="porta11-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P12:</label><input type="text" id="porta12-codigo5"><select id="porta12-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P13:</label><input type="text" id="porta13-codigo5"><select id="porta13-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P14:</label><input type="text" id="porta14-codigo5"><select id="porta14-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P15:</label><input type="text" id="porta15-codigo5"><select id="porta15-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                        <tr><td><div class="porta-row"><label>P16:</label><input type="text" id="porta16-codigo5"><select id="porta16-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="button-container">
+                <button type="button" class="copy-button" onclick="copiarDados('remo5')">Copiar Dados</button>
+                <button type="button" class="delete-button" onclick="showConfirmPopup('formClear', 'remo5')">Apagar Dados</button>
+                <button type="button" class="save-button" onclick="salvarDados('remo5')">Salvar Dados</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tab Dados Remoção de Portas -->
+    <div id="tab9" class="tab-content">
+        <h2>Dados Remoção de Portas</h2>
+        <div class="totals-container">
+            <p>Total Geral: <span id="totalGeralRemocao">0</span></p>
         </div>
-        <div class="form-group">
-            <label for="tecnico4">Técnico:</label>
-            <select id="tecnico4">
-                <option value="" disabled selected>Selecione um técnico</option>
-                <option value="Anderson Assis">Anderson Assis</option>
-                <option value="Gilmar Brito">Gilmar Brito</option>
-                <option value="Lucínio Teixeira">Lucínio Teixeira</option>
-                <option value="Paulo Cesar">Paulo Cesar</option>
-                <option value="Vinícius Kober">Vinícius Kober</option>
+        <div class="action-buttons">
+            <button class="delete-button" onclick="showConfirmPopup('clearAll')">Limpar Todos os Dados</button>
+            <button class="save-button" onclick="gerarRelatorioPDFRemocao()">Gerar Relatório PDF</button>
+        </div>
+        <table class="dados-table" id="dadosTableRemocao">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Código</th>
+                    <th>Protocolo</th>
+                    <th>Técnico</th>
+                    <th>CTO</th>
+                    <th>Porta Removida</th>
+                    <th>Observação</th>
+                    <th>Portas</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Tab Dashboard -->
+    <div id="tab13" class="tab-content">
+        <h2>Dashboard</h2>
+        <div>
+            <label for="filtroPeriodo">Período:</label>
+            <select id="filtroPeriodo" onchange="atualizarDashboard()">
+                <option value="7">Últimos 7 dias</option>
+                <option value="30">Últimos 30 dias</option>
+                <option value="all">Todos</option>
             </select>
         </div>
-        <div class="form-group">
-            <label for="codigo4">Código:</label>
-            <input type="text" id="codigo4">
+        <p>Total de Atendimentos: <span id="totalAtendimentos">0</span></p>
+        <div style="margin-bottom: 20px; height: 200px;">
+            <div id="graficoAtendimentosPorDia"></div>
         </div>
-        <div class="form-group">
-            <label for="cliente4">Cliente:</label>
-            <input type="text" id="cliente4">
+        <div style="margin-bottom: 20px; height: 200px;">
+            <div id="graficoAtendimentosPorTecnico"></div>
         </div>
-        <div class="form-group">
-            <label for="CTO4">CTO:</label>
-            <input type="text" id="CTO4">
+        <div style="height: 200px;">
+            <div id="graficoTotalPorTecnicoMensal"></div>
         </div>
-        <div class="form-group">
-            <label for="portaremovida4">Porta Removida:</label>
-            <input type="text" id="portaremovida4">
-        </div>
-        <div class="form-group">
-            <label for="observacao4">Observação:</label>
-            <select id="observacao4">
-                <option value="" selected>Selecione uma observação</option>
-                <option value="Identificado código do cliente na CTO, não foi efetuada a remoção devido o mesmo estar com status sem alimentação, Efetuada a padronização da CTO">Sem Alimentação</option>
-                <option value="Identificado código do cliente na CTO, Efetuada a remoção devido o status estar DESCONECTADO.">Desconectado</option>
-                <option value="Não identificado o código do cliente , porem foi efetuada a padronização da CTO.">Não Identificado</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Portas:</label>
-            <table class="portas-table">
-                <tbody>
-                    <tr><td><div class="porta-row"><label>P1:</label><input type="text" id="porta1-codigo4"><select id="porta1-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P2:</label><input type="text" id="porta2-codigo4"><select id="porta2-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P3:</label><input type="text" id="porta3-codigo4"><select id="porta3-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P4:</label><input type="text" id="porta4-codigo4"><select id="porta4-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P5:</label><input type="text" id="porta5-codigo4"><select id="porta5-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P6:</label><input type="text" id="porta6-codigo4"><select id="porta6-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P7:</label><input type="text" id="porta7-codigo4"><select id="porta7-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P8:</label><input type="text" id="porta8-codigo4"><select id="porta8-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P9:</label><input type="text" id="porta9-codigo4"><select id="porta9-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P10:</label><input type="text" id="porta10-codigo4"><select id="porta10-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P11:</label><input type="text" id="porta11-codigo4"><select id="porta11-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P12:</label><input type="text" id="porta12-codigo4"><select id="porta12-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P13:</label><input type="text" id="porta13-codigo4"><select id="porta13-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P14:</label><input type="text" id="porta14-codigo4"><select id="porta14-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P15:</label><input type="text" id="porta15-codigo4"><select id="porta15-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P16:</label><input type="text" id="porta16-codigo4"><select id="porta16-status4"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="button-container">
-            <button type="button" class="copy-button" onclick="copiarDados('remo4')">Copiar Dados</button>
-            <button type="button" class="delete-button" onclick="showConfirmPopup('formClear', 'remo4')">Apagar Dados</button>
-            <button type="button" class="save-button" onclick="salvarDados('remo4')">Salvar Dados</button>
-        </div>
-    </form>
-</div>
-
-<!-- Tab R5 -->
-<div id="tab12" class="tab-content">
-    <h2>Remoção de Portas 5</h2>
-    <form id="remo5">
-        <div class="form-group">
-            <label for="protocolo5">Protocolo:</label>
-            <input type="text" id="protocolo5">
-        </div>
-        <div class="form-group">
-            <label for="tecnico5">Técnico:</label>
-            <select id="tecnico5">
-                <option value="" disabled selected>Selecione um técnico</option>
-                <option value="Anderson Assis">Anderson Assis</option>
-                <option value="Gilmar Brito">Gilmar Brito</option>
-                <option value="Lucínio Teixeira">Lucínio Teixeira</option>
-                <option value="Paulo Cesar">Paulo Cesar</option>
-                <option value="Vinícius Kober">Vinícius Kober</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="codigo5">Código:</label>
-            <input type="text" id="codigo5">
-        </div>
-        <div class="form-group">
-            <label for="cliente5">Cliente:</label>
-            <input type="text" id="cliente5">
-        </div>
-        <div class="form-group">
-            <label for="CTO5">CTO:</label>
-            <input type="text" id="CTO5">
-        </div>
-        <div class="form-group">
-            <label for="portaremovida5">Porta Removida:</label>
-            <input type="text" id="portaremovida5">
-        </div>
-        <div class="form-group">
-            <label for="observacao5">Observação:</label>
-            <select id="observacao5">
-                <option value="" selected>Selecione uma observação</option>
-                <option value="Identificado código do cliente na CTO, não foi efetuada a remoção devido o mesmo estar com status sem alimentação, Efetuada a padronização da CTO">Sem Alimentação</option>
-                <option value="Identificado código do cliente na CTO, Efetuada a remoção devido o status estar DESCONECTADO.">Desconectado</option>
-                <option value="Não identificado o código do cliente , porem foi efetuada a padronização da CTO.">Não Identificado</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Portas:</label>
-            <table class="portas-table">
-                <tbody>
-                    <tr><td><div class="porta-row"><label>P1:</label><input type="text" id="porta1-codigo5"><select id="porta1-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P2:</label><input type="text" id="porta2-codigo5"><select id="porta2-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P3:</label><input type="text" id="porta3-codigo5"><select id="porta3-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P4:</label><input type="text" id="porta4-codigo5"><select id="porta4-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P5:</label><input type="text" id="porta5-codigo5"><select id="porta5-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P6:</label><input type="text" id="porta6-codigo5"><select id="porta6-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P7:</label><input type="text" id="porta7-codigo5"><select id="porta7-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P8:</label><input type="text" id="porta8-codigo5"><select id="porta8-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P9:</label><input type="text" id="porta9-codigo5"><select id="porta9-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P10:</label><input type="text" id="porta10-codigo5"><select id="porta10-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P11:</label><input type="text" id="porta11-codigo5"><select id="porta11-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P12:</label><input type="text" id="porta12-codigo5"><select id="porta12-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P13:</label><input type="text" id="porta13-codigo5"><select id="porta13-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P14:</label><input type="text" id="porta14-codigo5"><select id="porta14-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P15:</label><input type="text" id="porta15-codigo5"><select id="porta15-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                    <tr><td><div class="porta-row"><label>P16:</label><input type="text" id="porta16-codigo5"><select id="porta16-status5"><option value="" selected>Nenhum</option><option value="COD. CORRETO">COD. CORRETO</option><option value="DESCONECTADO">DESCONECTADO</option><option value="SEM ALIMENTAÇÃO">SEM ALIMENTAÇÃO</option></select></div></td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="button-container">
-            <button type="button" class="copy-button" onclick="copiarDados('remo5')">Copiar Dados</button>
-            <button type="button" class="delete-button" onclick="showConfirmPopup('formClear', 'remo5')">Apagar Dados</button>
-            <button type="button" class="save-button" onclick="salvarDados('remo5')">Salvar Dados</button>
-        </div>
-    </form>
-</div>
-
-   <!-- Tab Dados Remoção de Portas -->
-<div id="tab9" class="tab-content">
-    <h2>Dados Remoção de Portas</h2>
-    <div class="totals-container">
-        <p>Total Geral: <span id="totalGeralRemocao">0</span></p>
-    </div>
-    <div class="action-buttons">
-        <button class="delete-button" onclick="showConfirmPopup('clearAll')">Limpar Todos os Dados</button>
-        <button class="save-button" onclick="gerarRelatorioPDFRemocao()">Gerar Relatório PDF</button>
-    </div>
-    <table class="dados-table" id="dadosTableRemocao">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Código</th>
-                <th>Protocolo</th>
-                <th>Técnico</th>
-                <th>CTO</th>
-                <th>Porta Removida</th>
-                <th>Observação</th>
-                <th>Portas</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-<div id="tab13" class="tab-content">
-    <h2>Dashboard</h2>
-    <div>
-        <label for="filtroPeriodo">Período:</label>
-        <select id="filtroPeriodo" onchange="atualizarDashboard()">
-            <option value="7">Últimos 7 dias</option>
-            <option value="30">Últimos 30 dias</option>
-            <option value="all">Todos</option>
-        </select>
     </div>
 
-    <p>Total de Atendimentos: <span id="totalAtendimentos">0</span></p>
-    <div style="margin-bottom: 20px; height: 200px;">
-        <div id="graficoAtendimentosPorDia"></div>
+    <!-- Tab Atendimentos Mensais -->
+    <div id="tab14" class="tab-content">
+        <h2>Atendimentos Mensais</h2>
+        <div class="action-buttons">
+            <button class="delete-button" onclick="showConfirmPopup('clearAllMensais')">Limpar Todos os Dados</button>
+        </div>
+        <table class="dados-table" id="atendimentosMensaisTable">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Técnico</th>
+                    <th>Protocolo</th>
+                    <th>Quantidade de Portas</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
-
-    <div style="margin-bottom: 20px; height: 200px;">
-        <div id="graficoAtendimentosPorTecnico"></div>
-    </div>
-
-    <div style="height: 200px;">
-        <div id="graficoTotalPorTecnicoMensal"></div>
-    </div>
-</div>
-
-<!-- Tab Atendimentos Mensais -->
-<div id="tab14" class="tab-content">
-    <h2>Atendimentos Mensais</h2>
-    <div class="action-buttons">
-        <button class="delete-button" onclick="showConfirmPopup('clearAllMensais')">Limpar Todos os Dados</button>
-    </div>
-    <table class="dados-table" id="atendimentosMensaisTable">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Técnico</th>
-                <th>Protocolo</th>
-                <th>Quantidade de Portas</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
 
     <!-- Popups -->
     <div id="customPopup" class="custom-popup">Dados salvos com sucesso!</div>
@@ -575,17 +576,12 @@
     <div id="noDataToCopyPopup" class="no-data-to-copy-popup">Não há itens para apagar!</div>
     <div id="reportSuccessPopup" class="report-success-popup">Relatório gerado com sucesso!</div>
     <div id="clipboardErrorPopup" class="clipboard-error-popup">Erro ao copiar. Por favor, copie manualmente.</div>
-    <div id="confirmPopup">
-        <p id="confirmMessage"></p>
-        <button class="save-button" onclick="confirmAction()">Sim</button>
-        <button class="delete-button" onclick="cancelAction()">Não</button>
-    </div>
-    <div id="confirmOverlay"></div>
     <div id="copyFallbackContainer">
         <p>Não foi possível copiar automaticamente. Copie o texto abaixo manualmente:</p>
         <textarea id="copyFallbackText" readonly></textarea>
         <button class="save-button" onclick="closeCopyFallback()">Fechar</button>
     </div>
-<script src="script.js"></script>
+
+    <script src="script.js"></script>
 </body>
 </html>
