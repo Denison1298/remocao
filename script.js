@@ -254,13 +254,13 @@ function showClipboardError(text) {
     if (fallbackContainer && fallbackText) {
         fallbackText.value = text;
         fallbackContainer.style.display = 'block';
-        document.getElementById('confirmOverlay').style.display = 'block';
+        document.getElementById('configNomesOverlay').style.display = 'block';
     }
 }
 
 function closeCopyFallback() {
     const fallbackContainer = document.getElementById('copyFallbackContainer');
-    const confirmOverlay = document.getElementById('confirmOverlay');
+    const confirmOverlay = document.getElementById('configNomesOverlay');
     if (fallbackContainer) fallbackContainer.style.display = 'none';
     if (confirmOverlay) confirmOverlay.style.display = 'none';
 }
@@ -322,18 +322,75 @@ function showConfirmPopup(action, formId = null, protocolo = null) {
     currentAction = action;
     currentFormId = formId;
     currentProtocolo = protocolo;
-    const message = action === 'formClear' ? 'Deseja apagar os dados do formulário?' : 
-                   action === 'clearAll' ? 'Deseja limpar todos os dados salvos?' : 
-                   action === 'resetCounter' ? 'Deseja zerar o contador?' :
-                   'Deseja excluir este registro?';
-    const confirmMessage = document.getElementById('confirmMessage');
-    if (confirmMessage) {
-        confirmMessage.textContent = message;
+
+    const tabNames = {
+        'remo': 'Remoção de Portas 1',
+        'remo2': 'Remoção de Portas 2',
+        'remo3': 'Remoção de Portas 3',
+        'remo4': 'Remoção de Portas 4',
+        'remo5': 'Remoção de Portas 5',
+        'clearAll': 'Dados Remoção de Portas',
+        'clearAllMensais': 'Atendimentos Mensais'
+    };
+    
+    const tabName = formId ? tabNames[formId] || 'este formulário' : 'este registro';
+    
+    let title, text;
+    switch (action) {
+        case 'formClear':
+            title = 'Tem certeza?';
+            text = `Você deseja apagar todos os dados do formulário ${tabName}?`;
+            break;
+        case 'clearAll':
+            title = 'Tem certeza?';
+            text = `Você deseja limpar todos os dados da aba ${tabName}?`;
+            break;
+        case 'clearAllMensais':
+            title = 'Tem certeza?';
+            text = `Você deseja limpar todos os dados da aba ${tabName}?`;
+            break;
+        case 'resetCounter':
+            title = 'Tem certeza?';
+            text = 'Você deseja zerar o contador?';
+            break;
+        case 'deleteRecord':
+        case 'deleteRecordMensais':
+            title = 'Tem certeza?';
+            text = 'Você deseja excluir este registro?';
+            break;
+        default:
+            title = 'Confirmação';
+            text = 'Deseja prosseguir com esta ação?';
     }
-    const confirmPopup = document.getElementById('confirmPopup');
-    const confirmOverlay = document.getElementById('confirmOverlay');
-    if (confirmPopup) confirmPopup.style.display = 'block';
-    if (confirmOverlay) confirmOverlay.style.display = 'block';
+
+    Swal.fire({
+        title: title,
+        text: text,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, confirmar!',
+        cancelButtonText: 'Cancelar',
+        buttonsStyling: true,
+        customClass: {
+            confirmButton: 'swal-confirm-button',
+            cancelButton: 'swal-cancel-button'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            confirmAction();
+        } else {
+            Swal.fire({
+                title: 'Cancelado',
+                text: 'Ação cancelada.',
+                icon: 'info',
+                confirmButtonText: 'OK',
+                customClass: {
+                    confirmButton: 'swal-confirm-button'
+                }
+            });
+            cancelAction();
+        }
+    });
 }
 
 function confirmAction() {
@@ -361,14 +418,19 @@ function confirmAction() {
             setTimeout(() => popup.style.display = 'none', 2500);
         }
     }
+    Swal.fire({
+        title: 'Sucesso!',
+        text: 'Ação realizada com sucesso!',
+        icon: 'success',
+        confirmButtonText: 'OK',
+        customClass: {
+            confirmButton: 'swal-confirm-button'
+        }
+    });
     cancelAction();
 }
 
 function cancelAction() {
-    const confirmPopup = document.getElementById('confirmPopup');
-    const confirmOverlay = document.getElementById('confirmOverlay');
-    if (confirmPopup) confirmPopup.style.display = 'none';
-    if (confirmOverlay) confirmOverlay.style.display = 'none';
     currentAction = null;
     currentFormId = null;
     currentProtocolo = null;
@@ -482,7 +544,7 @@ function atualizarTabelaRemocao() {
     
     if (dados.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="9" style="text-align: center;">Nenhum dado disponível</td>'; // Ajustado para 9 colunas
+        tr.innerHTML = '<td colspan="9" style="text-align: center;">Nenhum dado disponível</td>';
         tbody.appendChild(tr);
         return;
     }
@@ -505,7 +567,7 @@ function atualizarTabelaRemocao() {
             <td>${sanitizeString(item.observacao) || ''}</td>
             <td>${portasText}</td>
             <td>
-                <button class="delete-button" onclick="showConfirmPopup('delete', ${index})">Excluir</button>
+                <button class="delete-button" onclick="showConfirmPopup('deleteRecord', null, '${sanitizeString(item.protocolo)}')">Excluir</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -583,13 +645,13 @@ function gerarRelatorioPDFRemocao() {
                 startY: startY,
                 styles: { fontSize: 8, cellPadding: 2 },
                 columnStyles: {
-                    0: { cellWidth: 30 }, // Código
-                    1: { cellWidth: 30 }, // Protocolo
-                    2: { cellWidth: 40 }, // Técnico
-                    3: { cellWidth: 30 }, // CTO
-                    4: { cellWidth: 30 }, // Porta Removida
-                    5: { cellWidth: 60 }, // Observação
-                    6: { cellWidth: 80 }  // Portas
+                    0: { cellWidth: 30 },
+                    1: { cellWidth: 30 },
+                    2: { cellWidth: 40 },
+                    3: { cellWidth: 30 },
+                    4: { cellWidth: 30 },
+                    5: { cellWidth: 60 },
+                    6: { cellWidth: 80 }
                 }
             });
             startY = doc.autoTable.previous.finalY + 10;
